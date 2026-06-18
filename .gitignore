@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.output/
+.wxt/
+.env
+.env.*
+*.log
+.DS_Store
+.claude/
+CLAUDE.md
+PROMPT.md
