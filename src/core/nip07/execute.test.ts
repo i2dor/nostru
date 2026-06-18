@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateSecretKey, getPublicKey, verifyEvent, nip04, nip44 } from 'nostr-tools';
+import { generateSecretKey, getPublicKey, verifyEvent, nip04, nip44, type NostrEvent } from 'nostr-tools';
 import { bytesToHex } from '../keys/crypto';
 import { executeNip07 } from './execute';
 
@@ -20,7 +20,7 @@ describe('executeNip07', () => {
 
   it('signEvent produces a valid signed event', async () => {
     const template = { kind: 1, content: 'hello', tags: [], created_at: 1700000000 };
-    const signed = await executeNip07('signEvent', { event: template }, privkeyHex) as ReturnType<typeof verifyEvent>;
+    const signed = await executeNip07('signEvent', { event: template }, privkeyHex) as NostrEvent;
     expect(verifyEvent(signed)).toBe(true);
     expect(signed.pubkey).toBe(pubkey);
     expect(signed.content).toBe('hello');

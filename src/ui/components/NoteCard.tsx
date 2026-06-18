@@ -6,6 +6,7 @@ import { useProfile } from '../feed/hooks';
 import { useNDK } from '../../core/ndk';
 import { publishLike, publishRepost } from '../../core/events/reactions';
 import { useNav } from '../context/NavContext';
+import { ZapModal } from './ZapModal';
 
 function relativeTime(ts: number): string {
   const diff = Math.floor(Date.now() / 1000) - ts;
@@ -48,6 +49,7 @@ export function NoteCard({ event }: { event: NDKEvent }) {
   const [liked, setLiked] = useState(false);
   const [liking, setLiking] = useState(false);
   const [reposted, setReposted] = useState(false);
+  const [zapOpen, setZapOpen] = useState(false);
 
   const goProfile = useCallback(() => {
     push({ view: 'profile', pubkey: event.pubkey });
@@ -114,12 +116,17 @@ export function NoteCard({ event }: { event: NDKEvent }) {
             >
               <IconHeart size={15} fill={liked ? 'currentColor' : 'none'} />
             </button>
-            <button className="flex items-center gap-1 text-zinc-400 hover:text-zap transition-colors" aria-label="Zap">
+            <button
+              onClick={() => setZapOpen(true)}
+              className="flex items-center gap-1 text-zinc-400 hover:text-zap transition-colors"
+              aria-label="Zap"
+            >
               <IconBolt size={15} />
             </button>
           </div>
         </div>
       </div>
+      {zapOpen && <ZapModal event={event} onClose={() => setZapOpen(false)} />}
     </article>
   );
 }

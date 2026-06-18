@@ -3,6 +3,7 @@ import {
   IconBell,
   IconMail,
   IconSearch,
+  IconWallet,
   IconLock,
   IconChevronDown,
   IconUserCircle,
@@ -18,6 +19,8 @@ import { UnlockScreen } from './screens/UnlockScreen';
 import { ThreadView } from './screens/ThreadView';
 import { ProfileView } from './screens/ProfileView';
 import { PermissionsScreen } from './screens/PermissionsScreen';
+import { WalletScreen } from './screens/WalletScreen';
+import { WalletProvider } from './context/WalletContext';
 import { FeedView } from './feed/FeedView';
 import { truncateNpub, encodePubkey } from '../core/keys';
 
@@ -76,6 +79,7 @@ const NAV_ITEMS = [
   { icon: IconBell, label: 'Notifications' },
   { icon: IconMail, label: 'Messages' },
   { icon: IconSearch, label: 'Search' },
+  { icon: IconWallet, label: 'Wallet' },
 ];
 
 function PlaceholderTab({ label, note }: { label: string; note: string }) {
@@ -145,6 +149,7 @@ function MainContent({ narrow, pubkey }: { narrow: boolean; pubkey: string }) {
             {activeTab === 1 && <PlaceholderTab label="Notifications" note="Coming in M8" />}
             {activeTab === 2 && <PlaceholderTab label="Messages" note="Coming in M7" />}
             {activeTab === 3 && <PlaceholderTab label="Search" note="Coming in M8" />}
+            {activeTab === 4 && <WalletScreen />}
           </main>
         </>
       )}
@@ -167,7 +172,9 @@ function NDKBridge({ children, narrow }: { children?: never; narrow: boolean }) 
   const privkey = usePrivkey();
   return (
     <NDKProvider privkey={privkey}>
-      <Router narrow={narrow} />
+      <WalletProvider>
+        <Router narrow={narrow} />
+      </WalletProvider>
     </NDKProvider>
   );
 }
