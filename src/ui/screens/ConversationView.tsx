@@ -42,6 +42,8 @@ export function ConversationView({ peerPubkey }: { peerPubkey: string }) {
   const myPubkey = session.status === 'unlocked' ? session.account.pubkey : '';
   const conversation = conversations.find(c => c.peerPubkey === peerPubkey);
   const messages = conversation?.messages ?? [];
+  // Reply using the same protocol the peer used, so older NIP-04 clients see our replies.
+  const peerProtocol = [...messages].reverse().find(m => m.from === peerPubkey)?.protocol ?? 'nip17';
   const display = profile?.displayName ?? profile?.name ?? truncateNpub(encodePubkey(peerPubkey));
 
   useEffect(() => {
@@ -54,14 +56,14 @@ export function ConversationView({ peerPubkey }: { peerPubkey: string }) {
     setSending(true);
     setError('');
     try {
-      await sendDM(peerPubkey, trimmed);
+      await sendDM(peerPubkey, trimmed, peerProtocol);
       setText('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Send failed');
     } finally {
       setSending(false);
     }
-  }, [text, sending, sendDM, peerPubkey]);
+  }, [text, sending, sendDM, peerPubkey, peerProtocol]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend(); }

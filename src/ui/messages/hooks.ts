@@ -4,7 +4,7 @@ import { useNDK } from '../../core/ndk';
 import { useAccount } from '../context/AccountContext';
 import { bytesToHex } from '../../core/keys';
 import { decryptNip17GiftWrap, sendNip17 } from '../../core/dm/nip17';
-import { decryptNip04 } from '../../core/dm/nip04';
+import { decryptNip04, sendNip04 } from '../../core/dm/nip04';
 import type { DecryptedMessage, Conversation } from '../../core/dm/types';
 
 export function useConversations(): Conversation[] {
@@ -73,9 +73,18 @@ export function useSendDM() {
   const { session } = useAccount();
   const { ndk } = useNDK();
 
-  return useCallback(async (recipientPubkey: string, content: string) => {
+  return useCallback(async (
+    recipientPubkey: string,
+    content: string,
+    protocol: 'nip17' | 'nip04' = 'nip17',
+  ) => {
     if (!ndk) throw new Error('Not connected');
     if (session.status !== 'unlocked') throw new Error('Wallet locked');
-    await sendNip17(ndk, bytesToHex(session.privkey), recipientPubkey, content);
+    const privkeyHex = bytesToHex(session.privkey);
+    if (protocol === 'nip04') {
+      await sendNip04(ndk, privkeyHex, recipientPubkey, content);
+    } else {
+      await sendNip17(ndk, privkeyHex, recipientPubkey, content);
+    }
   }, [ndk, session]);
 }
