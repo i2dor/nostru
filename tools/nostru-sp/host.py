@@ -2,10 +2,10 @@
 """
 Nostru Silent Payments native host.
 Protocol: Chrome native messaging (4-byte LE length prefix).
-Actions : identify | scan | scan_tx | scan_esplora | sweep
+Actions : identify | scan | scan_tx | scan_esplora | scan_frigate | sweep
 Deps    : zero external packages; pure Python 3.9+ stdlib only.
 """
-import sys, json, struct, hashlib, os, urllib.request, urllib.error
+import sys, json, struct, hashlib, os, urllib.request, urllib.error, socket, ssl
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
@@ -598,12 +598,158 @@ def action_sweep(req: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def action_scan_frigate(req: dict[str, Any]) -> dict[str, Any]:
+    """Scan via a Frigate/Electrum SP server (blockchain.silentpayments.subscribe)."""
+    b_scan    = int(req['scan_priv'], 16)
+    B_spend_b = bytes.fromhex(req['spend_pub'])
+    birthday  = int(req.get('birthday_height', 0))
+    server    = req.get('server', '').strip()
+
+    if not server:
+        return {'status': 'error', 'error': 'server required (e.g. ssl://host:50002 or tcp://host:50001)'}
+
+    if server.startswith('ssl://'):
+        use_ssl, addr = True, server[6:]
+    elif server.startswith('tcp://'):
+        use_ssl, addr = False, server[6:]
+    else:
+        return {'status': 'error', 'error': 'server must start with ssl:// or tcp://'}
+
+    if ':' in addr:
+        host, port_str = addr.rsplit(':', 1)
+        try:
+            port = int(port_str)
+        except ValueError:
+            return {'status': 'error', 'error': f'invalid port: {port_str}'}
+    else:
+        host, port = addr, (50002 if use_ssl else 50001)
+
+    b_scan_hex    = hex(b_scan)[2:].zfill(64)
+    spend_pub_hex = B_spend_b.hex()
+
+    try:
+        raw_sock = socket.create_connection((host, port), timeout=30)
+        if use_ssl:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode    = ssl.CERT_NONE   # allow self-signed certs
+            raw_sock = ctx.wrap_socket(raw_sock, server_hostname=host)
+        raw_sock.settimeout(60)   # per-recv timeout during scan
+    except Exception as e:
+        return {'status': 'error', 'error': f'Connection to {host}:{port} failed: {e}'}
+
+    history_entries: list[dict[str, Any]] = []
+    try:
+        rpc = json.dumps({
+            'id': 1,
+            'method': 'blockchain.silentpayments.subscribe',
+            'params': [b_scan_hex, spend_pub_hex, birthday, []],
+        }) + '\n'
+        raw_sock.sendall(rpc.encode())
+
+        buf  = b''
+        done = False
+        while not done:
+            try:
+                chunk = raw_sock.recv(65536)
+            except socket.timeout:
+                break
+            if not chunk:
+                break
+            buf += chunk
+            while b'\n' in buf:
+                line, buf = buf.split(b'\n', 1)
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    msg = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                err = msg.get('error')
+                if err:
+                    raise RuntimeError(err.get('message', str(err)) if isinstance(err, dict) else str(err))
+
+                if msg.get('method') == 'blockchain.silentpayments.subscribe':
+                    params = msg.get('params', [])
+                    # Params may be positional [subscription, progress, history]
+                    # or a single dict {subscription, progress, history}
+                    if params and isinstance(params[0], dict) and 'progress' in params[0]:
+                        notif    = params[0]
+                        progress = float(notif.get('progress', 0))
+                        batch    = notif.get('history', [])
+                    else:
+                        progress = float(params[1]) if len(params) > 1 else 0.0
+                        batch    = params[2]         if len(params) > 2 else []
+
+                    if isinstance(batch, list):
+                        history_entries.extend(batch)
+                    if progress >= 1.0:
+                        done = True
+                        break
+    except RuntimeError as e:
+        raw_sock.close()
+        return {'status': 'error', 'error': f'Server error: {e}'}
+    except Exception as e:
+        raw_sock.close()
+        return {'status': 'error', 'error': f'Scan error: {e}'}
+    finally:
+        raw_sock.close()
+
+    found: list[dict[str, Any]] = []
+    for entry in history_entries:
+        txid      = entry.get('tx_hash', '')
+        tweak_key = entry.get('tweak_key', '')
+        height    = int(entry.get('height', 0))
+        if not txid or not tweak_key:
+            continue
+        try:
+            shared = sp_shared_secret(b_scan, tweak_key)
+        except Exception:
+            continue
+        try:
+            tx = fetch_tx(txid)
+        except RuntimeError:
+            continue
+        p2tr: list[tuple[int, bytes, dict[str, Any]]] = []
+        for i, out in enumerate(tx.get('vout', [])):
+            try:
+                spk = bytes.fromhex(out.get('scriptpubkey', ''))
+            except ValueError:
+                continue
+            if len(spk) == 34 and spk[:2] == b'\x51\x20':
+                p2tr.append((i, spk[2:], out))
+        matched: set[int] = set()
+        k = 0
+        while True:
+            try:
+                x_k = sp_output_pubkey(shared, B_spend_b, k)[1:]
+            except Exception:
+                break
+            m = next((idx for idx, (vi, x, _) in enumerate(p2tr)
+                      if vi not in matched and x == x_k), None)
+            if m is None:
+                break
+            vi, x_only, out = p2tr[m]
+            matched.add(vi)
+            found.append({
+                'txid': txid, 'vout': vi, 'value': out['value'],
+                'x_only_pubkey': x_only.hex(), 'k': k, 'block_height': height,
+                'shared_secret': shared.hex(),
+            })
+            k += 1
+
+    return {'status': 'ok', 'utxos': found}
+
+
 ACTIONS = {
-    'identify':     action_identify,
-    'scan':         action_scan,
-    'scan_tx':      action_scan_tx,
-    'scan_esplora': action_scan_esplora,
-    'sweep':        action_sweep,
+    'identify':      action_identify,
+    'scan':          action_scan,
+    'scan_tx':       action_scan_tx,
+    'scan_esplora':  action_scan_esplora,
+    'scan_frigate':  action_scan_frigate,
+    'sweep':         action_sweep,
 }
 
 

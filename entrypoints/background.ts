@@ -4,12 +4,13 @@ import type { NIP07Method, ApprovalResult, PendingApproval, BridgeNip07Request }
 import { deriveScanPriv, deriveSpendPriv, deriveSpendPub } from '../src/core/nsp';
 
 interface SpRequest {
-  type: 'sp:identify' | 'sp:scan' | 'sp:scan_tx' | 'sp:scan_esplora' | 'sp:sweep';
+  type: 'sp:identify' | 'sp:scan' | 'sp:scan_tx' | 'sp:scan_esplora' | 'sp:scan_frigate' | 'sp:sweep';
   server?: string;
   birthdayHeight?: number;
   tipHeight?: number;
   txid?: string;
   explorer?: string;
+  frigateServer?: string;
   utxos?: unknown[];
   destination?: string;
   feeRate?: number;
@@ -230,7 +231,7 @@ export default defineBackground(() => {
         }
       }
 
-      if (msg.type === 'sp:identify' || msg.type === 'sp:scan' || msg.type === 'sp:scan_tx' || msg.type === 'sp:scan_esplora' || msg.type === 'sp:sweep') {
+      if (msg.type === 'sp:identify' || msg.type === 'sp:scan' || msg.type === 'sp:scan_tx' || msg.type === 'sp:scan_esplora' || msg.type === 'sp:scan_frigate' || msg.type === 'sp:sweep') {
         handleSpRequest(msg as SpRequest)
           .then(result => sendResponse({ result }))
           .catch((err: unknown) =>
@@ -339,6 +340,18 @@ async function handleSpRequest(req: SpRequest): Promise<unknown> {
       scan_priv: deriveScanPriv(privHex),
       spend_pub: deriveSpendPub(pubkey),
       txid:      req.txid ?? '',
+    });
+  }
+
+  if (req.type === 'sp:scan_frigate') {
+    const pubkey = await getActivePubkey();
+    if (!pubkey) throw new Error('No active account');
+    return callNativeHost({
+      action:          'scan_frigate',
+      scan_priv:       deriveScanPriv(privHex),
+      spend_pub:       deriveSpendPub(pubkey),
+      birthday_height: req.birthdayHeight ?? 0,
+      server:          req.frigateServer ?? '',
     });
   }
 

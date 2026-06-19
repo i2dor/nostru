@@ -159,6 +159,9 @@ function SpSection() {
   const [explorer, setExplorer] = useState('https://mempool.space');
   const [scanningEsplora, setScanningEsplora] = useState(false);
   const [scanEsploraErr, setScanEsploraErr] = useState('');
+  const [frigateServer, setFrigateServer] = useState('');
+  const [scanningFrigate, setScanningFrigate] = useState(false);
+  const [scanFrigateErr, setScanFrigateErr] = useState('');
   const [discovering, setDiscovering] = useState(false);
   const [discoverErr, setDiscoverErr] = useState('');
   const [utxos, setUtxos] = useState<SpUtxo[]>([]);
@@ -266,6 +269,28 @@ function SpSection() {
       setScanningEsplora(false);
     }
   }, [explorer, birthday, tip]);
+
+  const handleScanFrigate = useCallback(async () => {
+    setScanFrigateErr('');
+    setUtxos([]);
+    setSweepResult(null);
+    setScanningFrigate(true);
+    try {
+      const res = await sendToBackground({
+        type:           'sp:scan_frigate',
+        frigateServer:  frigateServer.trim(),
+        birthdayHeight: birthday ? parseInt(birthday, 10) : 0,
+      });
+      if (res?.error) { setScanFrigateErr(res.error); return; }
+      const data = res?.result as { status: string; utxos?: SpUtxo[]; error?: string };
+      if (data?.status === 'ok') setUtxos(data.utxos ?? []);
+      else setScanFrigateErr(data?.error ?? 'Unexpected response from native host');
+    } catch (e) {
+      setScanFrigateErr(e instanceof Error ? e.message : 'Scan failed');
+    } finally {
+      setScanningFrigate(false);
+    }
+  }, [frigateServer, birthday]);
 
   const handleDiscover = useCallback(async () => {
     if (!ndk || session.status !== 'unlocked') return;
@@ -542,6 +567,27 @@ function SpSection() {
                   : <><IconScan size={14} /> Scan via Esplora</>}
               </button>
               {scanEsploraErr && <p className="text-xs text-red-500">{scanEsploraErr}</p>}
+
+              <div className="space-y-2">
+                <label className="block text-xs text-zinc-400">Frigate server <span className="text-zinc-400 font-normal">(Electrum SP index, e.g. sparrowwallet)</span></label>
+                <input
+                  type="text"
+                  value={frigateServer}
+                  onChange={e => setFrigateServer(e.target.value)}
+                  placeholder="ssl://host:50002 or tcp://host:50001"
+                  className="w-full px-2 py-1.5 text-xs font-mono rounded border border-zinc-200 dark:border-zinc-700 bg-transparent focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+              <button
+                onClick={() => void handleScanFrigate()}
+                disabled={scanningFrigate || !frigateServer.trim()}
+                className="w-full py-2 rounded-lg border border-accent text-accent text-sm font-medium hover:bg-accent/10 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              >
+                {scanningFrigate
+                  ? <><IconLoader2 size={14} className="animate-spin" /> Scanning via Frigate...</>
+                  : <><IconScan size={14} /> Scan via Frigate</>}
+              </button>
+              {scanFrigateErr && <p className="text-xs text-red-500">{scanFrigateErr}</p>}
 
               <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 space-y-2">
                 <label className="block text-xs text-zinc-400">Or scan a specific transaction</label>
