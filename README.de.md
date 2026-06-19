@@ -74,7 +74,7 @@ NSP ist maechtig, aber nicht neutral. Dies sind die ehrlichen Vor- und Nachteile
 |----------------|---------------------|
 | Null Einrichtungsaufwand fuer Empfaenger | Die SP-Adresse existiert in dem Moment, in dem das Schluesselpaar existiert. Der Empfaenger muss nicht online sein, keine Software ausfuehren oder NSP kennen. |
 | Universelle Reichweite | Jeder Nostr-Benutzer ist bereits ein Bitcoin-Empfaenger. Keine Anmeldung erforderlich. |
-| On-Chain-Unkorrelierbarkeit | Mehrere Zahlungen an denselben npub erzeugen unkorrelierbare P2TR-Outputs. Chain-Analyse kann sie nicht bündeln. |
+| On-Chain-Unkorrelierbarkeit | Mehrere Zahlungen an denselben npub erzeugen unkorrelierbare P2TR-Outputs. Chain-Analyse kann sie nicht buendeln. |
 | Keine Adresswiederverwendung | Jede Zahlung erzeugt einen einzigartigen Output via ECDH. |
 | Soziales Graph als Zahlungsverzeichnis | Folge jemandem auf Nostr, bezahle ihn lautlos - kein Adressaustausch noetig. |
 | Kein Verwahrer, kein Kanal | Im Gegensatz zu Lightning keine Kanallikuiditaet oder Online-Node erforderlich. |

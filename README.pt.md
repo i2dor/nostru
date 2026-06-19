@@ -74,7 +74,7 @@ NSP e poderoso mas nao neutro. Estas sao as vantagens e desvantagens honestas.
 |-----------------|----------------|
 | Zero configuracao para o receptor | O endereco SP existe no momento em que o par de chaves existe. O receptor nao precisa estar online, executar software ou conhecer NSP. |
 | Alcance universal | Cada usuario Nostr ja e um receptor de Bitcoin. Nao requer inscricao. |
-| Desvinculabilidade on-chain | Multiplos pagamentos ao mesmo npub produzem outputs P2TR sem correlacao. A analise em cadeia nao pode agrupа-los. |
+| Desvinculabilidade on-chain | Multiplos pagamentos ao mesmo npub produzem outputs P2TR sem correlacao. A analise em cadeia nao pode agrupa-los. |
 | Sem reutilizacao de endereco | Cada pagamento produz um output unico via ECDH. |
 | Grafo social como diretorio de pagamentos | Siga alguem no Nostr, pague silenciosamente - sem troca de enderecos. |
 | Sem custodiante, sem canal | Ao contrario do Lightning, sem necessidade de liquidez de canal ou no online. |
