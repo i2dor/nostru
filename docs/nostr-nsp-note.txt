@@ -1,4 +1,6 @@
-trbouma's NSP brief raises something the BIP-352 literature mostly skips over: receiver culpability.
+I built Nostru - a Chrome extension that derives Bitcoin Silent Payment addresses from Nostr keys and scans for incoming payments locally. Your npub becomes your sp1 address. Your nsec is what detects and spends what lands there.
+
+While working on it I read trbouma's NSP brief. It raises something the BIP-352 literature mostly skips over: receiver culpability.
 
 The standard threat model treats scan key exposure as an accident - a compromised device, a bad scanner, a leaked log. trbouma names the sharper version: the receiver can deliberately expose the scan key after collecting and spending funds. Donors can't un-pay. The privacy loss is permanent, and the receiver can walk away to a fresh address while the people who funded them remain permanently mappable.
 
