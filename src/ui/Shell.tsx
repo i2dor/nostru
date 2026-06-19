@@ -5,7 +5,8 @@ import {
   IconSearch,
   IconBookmark,
   IconWallet,
-  IconLock,
+  IconLogout,
+  IconTrash,
   IconChevronDown,
   IconUserCircle,
   IconArrowLeft,
@@ -38,8 +39,9 @@ import { getWideLayout, setWideLayout } from '../core/store/settings';
 type MainView = 'app' | 'permissions' | 'settings' | 'wallet';
 
 function AccountSwitcher({ onNavigate }: { onNavigate: (view: MainView) => void }) {
-  const { session, switchAccount, lock } = useAccount();
+  const { session, switchAccount, lock, deleteAccount } = useAccount();
   const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const npub = useNpub();
 
   if (session.status !== 'unlocked') return null;
@@ -64,15 +66,35 @@ function AccountSwitcher({ onNavigate }: { onNavigate: (view: MainView) => void 
       {open && (
         <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg py-1 z-50">
           {session.allAccounts.map(account => (
-            <button
-              key={account.pubkey}
-              onClick={() => { switchAccount(account.pubkey); setOpen(false); }}
-              className={`w-full text-left px-3 py-2 text-xs font-mono hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors ${
-                account.pubkey === session.account.pubkey ? 'text-accent font-medium' : 'text-zinc-600 dark:text-zinc-400'
-              }`}
-            >
-              {truncateNpub(encodePubkey(account.pubkey))}
-            </button>
+            <div key={account.pubkey} className="flex items-center group">
+              <button
+                onClick={() => { switchAccount(account.pubkey); setOpen(false); setConfirmDelete(null); }}
+                className={`flex-1 text-left px-3 py-2 text-xs font-mono hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors ${
+                  account.pubkey === session.account.pubkey ? 'text-accent font-medium' : 'text-zinc-600 dark:text-zinc-400'
+                }`}
+              >
+                {truncateNpub(encodePubkey(account.pubkey))}
+              </button>
+              {confirmDelete === account.pubkey
+                ? (
+                  <button
+                    onClick={() => { void deleteAccount(account.pubkey); setConfirmDelete(null); setOpen(false); }}
+                    className="pr-3 text-xs text-red-500 font-medium hover:text-red-600 whitespace-nowrap"
+                  >
+                    Remove?
+                  </button>
+                )
+                : (
+                  <button
+                    onClick={e => { e.stopPropagation(); setConfirmDelete(account.pubkey); }}
+                    className="pr-3 text-zinc-300 dark:text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove account"
+                  >
+                    <IconTrash size={12} />
+                  </button>
+                )
+              }
+            </div>
           ))}
           <div className="border-t border-zinc-100 dark:border-zinc-800 mt-1 pt-1">
             <button
@@ -85,7 +107,7 @@ function AccountSwitcher({ onNavigate }: { onNavigate: (view: MainView) => void 
               onClick={() => { lock(); setOpen(false); }}
               className="w-full text-left px-3 py-2 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2 transition-colors"
             >
-              <IconLock size={12} /> Lock
+              <IconLogout size={12} /> Log out
             </button>
           </div>
         </div>

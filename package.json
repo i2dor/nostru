@@ -1,7 +1,7 @@
 {
   "name": "nostru",
   "version": "0.0.1",
-  "description": "Nostr social client for your browser",
+  "description": "Nostr identity. Bitcoin Silent Payments. One key.",
   "author": "i2dor",
   "private": true,
   "type": "module",

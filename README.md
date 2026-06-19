@@ -1,6 +1,8 @@
 # Nostru
 
-A Nostr social client built as a browser sidePanel extension (Chrome MV3). It lets you read and write to the Nostr network, zap with one click via NWC, and receive Bitcoin through Silent Payments - all without ever leaving your browser.
+Nostr identity. Bitcoin Silent Payments. One key.
+
+A browser sidePanel extension (Chrome MV3) that connects your Nostr identity to the Bitcoin network. Read and write Nostr, zap with one click via NWC, and receive Bitcoin through Silent Payments derived from your existing keypair - all without ever leaving your browser.
 
 ---
 

@@ -6,7 +6,7 @@ export default defineConfig({
   outDir: 'dist',
   manifest: {
     name: 'Nostru',
-    description: 'Nostr social client for your browser',
+    description: 'Nostr identity. Bitcoin Silent Payments. One key.',
     permissions: ['storage', 'sidePanel', 'windows', 'notifications', 'alarms', 'nativeMessaging'],
     host_permissions: ['https://*/*'],
     action: {},
