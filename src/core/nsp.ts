@@ -41,9 +41,14 @@ function derivePrivOffset(privkeyHex: string, tag: string): bigint {
   const G = secp256k1.Point.BASE;
   const d = BigInt('0x' + privkeyHex);
   const P = G.multiply(d);
-  const Pbytes = P.toBytes(true);
+  // Nostr pubkeys are x-only; BIP-340 lift_x always picks even y.
+  // Normalize d so d_norm*G has even y, matching the '02' prefix used in
+  // deriveNspAddress. Without this, half of all Nostr keys (odd-y) compute
+  // the wrong t and b_scan, making the scanner search the wrong address.
+  const d_norm = P.y % 2n === 0n ? d : n - d;
+  const Pbytes = concatBytes(new Uint8Array([0x02]), P.toBytes(true).slice(1));
   const t = BigInt('0x' + bytesToHex(taggedHash(tag, Pbytes))) % n;
-  return (d + t) % n;
+  return (d_norm + t) % n;
 }
 
 export function deriveScanPriv(privkeyHex: string): string {
