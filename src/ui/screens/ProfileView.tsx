@@ -10,7 +10,10 @@ import {
   IconBan,
   IconEyeOff,
   IconPin,
+  IconCurrencyBitcoin,
+  IconCopy,
 } from '@tabler/icons-react';
+import { deriveNspAddress } from '../../core/nsp';
 import { zapInvoiceFromEvent, type NDKEvent } from '@nostr-dev-kit/ndk';
 import { useNDK } from '../../core/ndk';
 import { useProfile, useFollows, useFeed, useNip05, useBlocks, useMutes } from '../feed/hooks';
@@ -117,6 +120,38 @@ function ZapCard({ event }: { event: NDKEvent }) {
         </p>
       </div>
     </article>
+  );
+}
+
+function NspRow({ pubkey }: { pubkey: string }) {
+  const [copied, setCopied] = useState(false);
+  const address = useMemo(() => {
+    try { return deriveNspAddress(pubkey); } catch { return null; }
+  }, [pubkey]);
+
+  if (!address) return null;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(address).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 mt-2">
+      <IconCurrencyBitcoin size={13} className="text-amber-500 shrink-0" />
+      <span className="text-xs font-mono text-zinc-400 truncate flex-1" title={address}>
+        {address.slice(0, 24)}...
+      </span>
+      <button
+        onClick={handleCopy}
+        title="Copy Silent Payment address"
+        className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors shrink-0"
+      >
+        {copied ? <IconCheck size={12} className="text-green-500" /> : <IconCopy size={12} />}
+      </button>
+    </div>
   );
 }
 
@@ -455,6 +490,7 @@ export function ProfileView({ pubkey }: { pubkey: string }) {
                   <span className="text-zinc-400 ml-1">followers</span>
                 </span>
               </div>
+              <NspRow pubkey={pubkey} />
             </div>
           )}
         </div>
