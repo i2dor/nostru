@@ -12,15 +12,16 @@ import {
   IconArrowLeft,
   IconShield,
   IconSettings,
+  IconUserPlus,
 } from '@tabler/icons-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccountProvider, useAccount, useNpub, usePrivkey } from './context/AccountContext';
 import { NDKProvider } from '../core/ndk';
 import { NavProvider, useNav } from './context/NavContext';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { UnlockScreen } from './screens/UnlockScreen';
 import { ThreadView } from './screens/ThreadView';
-import { ProfileView } from './screens/ProfileView';
+import { ProfileView, FollowListView } from './screens/ProfileView';
 import { PermissionsScreen } from './screens/PermissionsScreen';
 import { WalletScreen } from './screens/WalletScreen';
 import { MessagesScreen } from './screens/MessagesScreen';
@@ -36,7 +37,7 @@ import { truncateNpub, encodePubkey } from '../core/keys';
 import { getTheme, applyTheme } from '../core/store/theme';
 import { getWideLayout, setWideLayout } from '../core/store/settings';
 
-type MainView = 'app' | 'permissions' | 'settings' | 'wallet';
+type MainView = 'app' | 'permissions' | 'settings' | 'wallet' | 'addAccount';
 
 function AccountSwitcher({ onNavigate }: { onNavigate: (view: MainView) => void }) {
   const { session, switchAccount, lock, deleteAccount } = useAccount();
@@ -106,6 +107,12 @@ function AccountSwitcher({ onNavigate }: { onNavigate: (view: MainView) => void 
           ))}
           <div className="border-t border-zinc-100 dark:border-zinc-800 mt-1 pt-1">
             <button
+              onClick={() => { onNavigate('addAccount'); setOpen(false); }}
+              className="w-full text-left px-3 py-2 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2 transition-colors"
+            >
+              <IconUserPlus size={12} /> Add account
+            </button>
+            <button
               onClick={() => { onNavigate('permissions'); setOpen(false); }}
               className="w-full text-left px-3 py-2 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2 transition-colors"
             >
@@ -138,10 +145,18 @@ function MainContent({ narrow, pubkey }: { narrow: boolean; pubkey: string }) {
   const [activeTab, setActiveTab] = useState(0);
   const [mainView, setMainView] = useState<MainView>('app');
   const [wideLayout, setWideLayoutState] = useState(false);
+  const prevPubkeyRef = useRef(pubkey);
 
   useEffect(() => {
     getWideLayout().then(setWideLayoutState);
   }, []);
+
+  useEffect(() => {
+    if (prevPubkeyRef.current !== pubkey) {
+      prevPubkeyRef.current = pubkey;
+      if (mainView === 'addAccount') setMainView('app');
+    }
+  }, [pubkey, mainView]);
 
   const handleWideLayoutChange = useCallback(async (value: boolean) => {
     setWideLayoutState(value);
@@ -155,6 +170,7 @@ function MainContent({ narrow, pubkey }: { narrow: boolean; pubkey: string }) {
     permissions: 'Connected sites',
     settings: 'Settings',
     wallet: 'Wallet',
+    addAccount: 'Add account',
   };
 
   const headerLeft = showBack ? (
@@ -195,10 +211,14 @@ function MainContent({ narrow, pubkey }: { narrow: boolean; pubkey: string }) {
         />
       ) : mainView === 'wallet' ? (
         <WalletScreen />
+      ) : mainView === 'addAccount' ? (
+        <OnboardingScreen />
       ) : current.view === 'thread' ? (
         <ThreadView event={current.event} />
       ) : current.view === 'profile' ? (
         <ProfileView pubkey={current.pubkey} />
+      ) : current.view === 'follow-list' ? (
+        <FollowListView pubkeys={current.pubkeys} title={current.title} />
       ) : current.view === 'conversation' ? (
         <ConversationView peerPubkey={current.peerPubkey} />
       ) : current.view === 'search' ? (

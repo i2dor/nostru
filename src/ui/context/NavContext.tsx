@@ -7,11 +7,12 @@ type ConversationNav = { view: 'conversation'; peerPubkey: string };
 type SearchNav = { view: 'search'; query: string };
 type EventRefNav = { view: 'event-ref'; eventId: string };
 type BookmarksNav = { view: 'bookmarks' };
-type NavState = { view: 'feed' } | ThreadNav | ProfileNav | ConversationNav | SearchNav | EventRefNav | BookmarksNav;
+type FollowListNav = { view: 'follow-list'; pubkeys: string[]; title: string };
+type NavState = { view: 'feed' } | ThreadNav | ProfileNav | ConversationNav | SearchNav | EventRefNav | BookmarksNav | FollowListNav;
 
 interface NavContextValue {
   current: NavState;
-  push: (state: ThreadNav | ProfileNav | ConversationNav | SearchNav | EventRefNav | BookmarksNav) => void;
+  push: (state: ThreadNav | ProfileNav | ConversationNav | SearchNav | EventRefNav | BookmarksNav | FollowListNav) => void;
   pop: () => void;
   canPop: boolean;
 }
@@ -21,7 +22,7 @@ const NavContext = createContext<NavContextValue | null>(null);
 export function NavProvider({ children }: { children: ReactNode }) {
   const [stack, setStack] = useState<NavState[]>([{ view: 'feed' }]);
 
-  const push = useCallback((state: ThreadNav | ProfileNav | ConversationNav | SearchNav | EventRefNav | BookmarksNav) => {
+  const push = useCallback((state: ThreadNav | ProfileNav | ConversationNav | SearchNav | EventRefNav | BookmarksNav | FollowListNav) => {
     setStack(prev => [...prev, state]);
   }, []);
 

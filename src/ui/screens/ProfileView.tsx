@@ -161,6 +161,8 @@ interface EditState {
   about: string;
   website: string;
   lud16: string;
+  picture: string;
+  banner: string;
 }
 
 const EDIT_FIELDS = [
@@ -169,6 +171,8 @@ const EDIT_FIELDS = [
   { key: 'about', label: 'About', placeholder: 'Short bio' },
   { key: 'website', label: 'Website', placeholder: 'https://...' },
   { key: 'lud16', label: 'Lightning address', placeholder: 'you@wallet.com' },
+  { key: 'picture', label: 'Avatar URL', placeholder: 'https://...' },
+  { key: 'banner', label: 'Banner URL', placeholder: 'https://...' },
 ] as const;
 
 export function ProfileView({ pubkey }: { pubkey: string }) {
@@ -218,6 +222,8 @@ export function ProfileView({ pubkey }: { pubkey: string }) {
       about: profile?.about ?? '',
       website: profile?.website ?? '',
       lud16: profile?.lud16 ?? '',
+      picture: profile?.picture ?? '',
+      banner: profile?.banner ?? '',
     });
     setEditing(true);
   }, [profile]);
@@ -232,6 +238,8 @@ export function ProfileView({ pubkey }: { pubkey: string }) {
       if (editState.about) meta.about = editState.about;
       if (editState.website) meta.website = editState.website;
       if (editState.lud16) meta.lud16 = editState.lud16;
+      if (editState.picture) meta.picture = editState.picture;
+      if (editState.banner) meta.banner = editState.banner;
       await publishProfile(ndk, meta);
       setEditing(false);
     } catch {
@@ -481,14 +489,22 @@ export function ProfileView({ pubkey }: { pubkey: string }) {
                 </a>
               )}
               <div className="flex gap-4 mt-2 text-sm">
-                <span>
+                <button
+                  onClick={() => profileFollows?.length && push({ view: 'follow-list', pubkeys: profileFollows, title: 'Following' })}
+                  className="hover:underline text-left disabled:cursor-default"
+                  disabled={!profileFollows?.length}
+                >
                   <span className="font-semibold">{profileFollows !== null ? profileFollows.length : '-'}</span>
                   <span className="text-zinc-400 ml-1">following</span>
-                </span>
-                <span>
+                </button>
+                <button
+                  onClick={() => followerCount > 0 && push({ view: 'follow-list', pubkeys: [...new Set(followerFeed.events.map(e => e.pubkey))], title: 'Followers' })}
+                  className="hover:underline text-left disabled:cursor-default"
+                  disabled={followerCount === 0}
+                >
                   <span className="font-semibold">{followerCount > 0 ? followerCount : '-'}</span>
                   <span className="text-zinc-400 ml-1">followers</span>
-                </span>
+                </button>
               </div>
               <NspRow pubkey={pubkey} />
             </div>
@@ -544,6 +560,41 @@ export function ProfileView({ pubkey }: { pubkey: string }) {
           onClose={() => setZapOpen(false)}
         />
       )}
+    </div>
+  );
+}
+
+function FollowListRow({ pubkey }: { pubkey: string }) {
+  const profile = useProfile(pubkey);
+  const { push } = useNav();
+  const npubShort = truncateNpub(encodePubkey(pubkey));
+  const name = profile?.displayName ?? profile?.name ?? npubShort;
+  const hue = parseInt(pubkey.slice(0, 4), 16) % 360;
+
+  return (
+    <button
+      onClick={() => push({ view: 'profile', pubkey })}
+      className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors w-full text-left border-b border-zinc-100 dark:border-zinc-800"
+    >
+      {profile?.picture
+        ? <img src={profile.picture} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        : <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: `hsl(${hue} 60% 45%)` }}>{name.slice(0, 2).toUpperCase()}</div>
+      }
+      <div className="min-w-0">
+        <p className="text-sm font-medium truncate">{name}</p>
+        <p className="text-xs text-zinc-400 font-mono truncate">{npubShort}</p>
+      </div>
+    </button>
+  );
+}
+
+export function FollowListView({ pubkeys, title }: { pubkeys: string[]; title: string }) {
+  return (
+    <div className="flex flex-col h-full overflow-y-auto">
+      <p className="text-xs text-zinc-400 px-4 py-2 border-b border-zinc-100 dark:border-zinc-800">
+        {pubkeys.length} {title.toLowerCase()}
+      </p>
+      {pubkeys.map(pk => <FollowListRow key={pk} pubkey={pk} />)}
     </div>
   );
 }
