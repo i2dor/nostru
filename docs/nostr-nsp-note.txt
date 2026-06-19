@@ -1,0 +1,21 @@
+trbouma's NSP brief raises something the BIP-352 literature mostly skips over: receiver culpability.
+
+The standard threat model treats scan key exposure as an accident - a compromised device, a bad scanner, a leaked log. trbouma names the sharper version: the receiver can deliberately expose the scan key after collecting and spending funds. Donors can't un-pay. The privacy loss is permanent, and the receiver can walk away to a fresh address while the people who funded them remain permanently mappable.
+
+That's not a theoretical edge case. It's a structural asymmetry baked into any scheme where the scan key is separable from the receiver's broader identity.
+
+The NSP derivation model changes the incentive structure. Because scan_priv is derived from nsec, revealing it is revealing root-equivalent identity material. For anyone with an established Nostr identity - followers, NIP-05, years of posts - the cost of that betrayal is their own key continuity. The deterrent is real. It doesn't eliminate the risk for throwaway npubs, but it meaningfully raises the cost for participants with skin in the game.
+
+This is one of the reasons I built Nostru the way I did.
+
+In Nostru, the NSP scan key never leaves the local device. It is derived in memory in the extension's service worker and passed directly to a local Python process over a Chrome Native Messaging pipe - a Unix pipe private to the OS process pair. The pipe terminates when the scan finishes. There is no intermediate hop, no TLS termination point, no reverse proxy, no log sink. The key is gone the moment the scan ends.
+
+That architecture isn't paranoia. It's the only correct model for root-equivalent key material. scan_priv in the NSP model IS nsec. Anyone who intercepts it gets the full identity. There is no "it's just the scan key, spend is separate" margin of safety.
+
+trbouma's proxy analysis makes this concrete: TLS protects hops, not payloads. Every reverse proxy, CDN layer, WAF, or logging pipeline that terminates an HTTPS connection to a remote scanner has full access to whatever is in the request body. For NSP, that means full access to the nsec. A browser extension with native messaging has no such layer. The only parties in the communication are the extension and the local process.
+
+One thing I'd add to the threat model: the identity-binding deterrent only works when the npub carries value the receiver wants to preserve. A burner npub costs nothing to generate. NSP strengthens the incentive structure for actors with established identities and real social stake. For opportunistic actors, the friction is low. That should be in the model explicitly, not left implicit.
+
+Overall, trbouma's framing of "donor entrapment" is the right vocabulary for this class of attack. It belongs in any serious NSP design discussion.
+
+Nostru is the first browser extension to combine Nostr identity with BIP-352 Silent Payments, with local-only scanning via native host. Repo: https://github.com/i2dor2/nostru
