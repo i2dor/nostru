@@ -235,6 +235,136 @@ def fetch_tweaks(server: str, start: int, end: int) -> list[Any]:
         raise RuntimeError(f"Index server unreachable: {e}")
 
 
+# ── Txid-targeted scan helpers ────────────────────────────────────────────
+
+def fetch_tx(txid: str) -> dict[str, Any]:
+    url = f'https://mempool.space/api/tx/{txid}'
+    req = urllib.request.Request(url, headers={
+        'Accept': 'application/json',
+        'User-Agent': 'nostru-sp/1.0',
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.loads(r.read())  # type: ignore[no-any-return]
+    except urllib.error.URLError as e:
+        raise RuntimeError(f'Could not fetch tx from mempool.space: {e}')
+
+
+def extract_eligible_inputs(vin: list[dict[str, Any]]) -> list[tuple[bytes, bytes, bytes]]:
+    """Return (txid_le_32, vout_le4, pubkey_33) for BIP-352 eligible inputs."""
+    eligible: list[tuple[bytes, bytes, bytes]] = []
+    for inp in vin:
+        txid_le = bytes.fromhex(inp['txid'])[::-1]
+        vout_le  = inp['vout'].to_bytes(4, 'little')
+        prevout  = inp.get('prevout', {})
+        ptype    = prevout.get('scriptpubkey_type', '')
+        witness  = inp.get('witness', [])
+
+        # P2WPKH: witness = [sig, pubkey]
+        if ptype in ('v0_p2wpkh', 'p2wpkh') and len(witness) == 2:
+            try:
+                pk = bytes.fromhex(witness[1])
+                if len(pk) == 33:
+                    eligible.append((txid_le, vout_le, pk))
+            except ValueError:
+                pass
+
+        # P2SH-P2WPKH: p2sh prevout, witness = [sig, pubkey]
+        elif ptype == 'p2sh' and len(witness) == 2:
+            try:
+                pk = bytes.fromhex(witness[1])
+                if len(pk) == 33:
+                    eligible.append((txid_le, vout_le, pk))
+            except ValueError:
+                pass
+
+        # P2TR key path: witness = [schnorr_sig] only (64 bytes, no annex)
+        elif ptype in ('v1_p2tr', 'p2tr') and len(witness) == 1:
+            spk = prevout.get('scriptpubkey', '')
+            if len(spk) == 68 and spk[:4] == '5120':
+                x_only = bytes.fromhex(spk[4:])
+                eligible.append((txid_le, vout_le, b'\x02' + x_only))  # lift_x -> even y
+
+    return eligible
+
+
+def sp_tweak_from_inputs(eligible: list[tuple[bytes, bytes, bytes]]) -> str:
+    """Compute BIP-352 tweak point: input_hash * A_sum. Returns 33-byte compressed hex."""
+    A_sum: Point = INF
+    for _, _, pk in eligible:
+        A_sum = point_add(A_sum, point_from_bytes(pk))
+    if A_sum is None:
+        raise ValueError('Sum of input pubkeys is point at infinity')
+    A_sum_bytes = point_to_bytes(A_sum)
+
+    outpoints = [txid_le + vout_le for txid_le, vout_le, _ in eligible]
+    lowest = min(outpoints)
+
+    h = int.from_bytes(tagged_hash('BIP0352/Inputs', lowest + A_sum_bytes), 'big') % N
+    tweak_pt = point_mul(h, point_from_bytes(A_sum_bytes))
+    if tweak_pt is None:
+        raise ValueError('Tweak point is point at infinity')
+    return point_to_bytes(tweak_pt).hex()
+
+
+def action_scan_tx(req: dict[str, Any]) -> dict[str, Any]:
+    b_scan    = int(req['scan_priv'], 16)
+    B_spend_b = bytes.fromhex(req['spend_pub'])
+    txid      = req.get('txid', '').strip()
+    if not txid:
+        return {'status': 'error', 'error': 'txid required'}
+
+    try:
+        tx = fetch_tx(txid)
+    except RuntimeError as e:
+        return {'status': 'error', 'error': str(e)}
+
+    eligible = extract_eligible_inputs(tx.get('vin', []))
+    if not eligible:
+        return {'status': 'error', 'error': 'No eligible inputs (need P2WPKH, P2SH-P2WPKH, or P2TR key-path)'}
+
+    try:
+        tweak_hex = sp_tweak_from_inputs(eligible)
+        shared    = sp_shared_secret(b_scan, tweak_hex)
+    except Exception as e:
+        return {'status': 'error', 'error': f'ECDH failed: {e}'}
+
+    p2tr_outs: list[tuple[int, bytes, dict[str, Any]]] = []
+    for i, out in enumerate(tx.get('vout', [])):
+        spk = bytes.fromhex(out.get('scriptpubkey', ''))
+        if len(spk) == 34 and spk[:2] == b'\x51\x20':
+            p2tr_outs.append((i, spk[2:], out))
+
+    bh = tx.get('status', {}).get('block_height', 0)
+    found: list[dict[str, Any]] = []
+    matched: set[int] = set()
+    k = 0
+    while True:
+        try:
+            P_k = sp_output_pubkey(shared, B_spend_b, k)
+        except Exception:
+            break
+        x_k = P_k[1:]
+        m = next((idx for idx, (vi, x_only, _) in enumerate(p2tr_outs)
+                  if vi not in matched and x_only == x_k), None)
+        if m is None:
+            break
+        vi, x_only, out = p2tr_outs[m]
+        matched.add(vi)
+        found.append({
+            'txid':          txid,
+            'vout':          vi,
+            'value':         out['value'],
+            'x_only_pubkey': x_only.hex(),
+            'k':             k,
+            'block_height':  bh,
+            'shared_secret': shared.hex(),
+        })
+        k += 1
+
+    return {'status': 'ok', 'utxos': found}
+
+
 # ── Sweep transaction builder ──────────────────────────────────────────────
 
 def estimate_fee(n_inputs: int, fee_rate: int) -> int:
@@ -320,22 +450,33 @@ def action_scan(req: dict[str, Any]) -> dict[str, Any]:
                     continue
                 try:
                     shared = sp_shared_secret(b_scan, tweak)
-                    for k, out in enumerate(tx.get('outputs', [])):
+                    # BIP-352: k counts matched outputs, not vout index
+                    p2tr: list[tuple[int, bytes, dict[str, Any]]] = []
+                    for i, out in enumerate(tx.get('outputs', [])):
                         spk = bytes.fromhex(out.get('scriptpubkey', ''))
-                        if len(spk) != 34 or spk[:2] != b'\x51\x20':
-                            continue
-                        x_only = spk[2:]
+                        if len(spk) == 34 and spk[:2] == b'\x51\x20':
+                            p2tr.append((i, spk[2:], out))
+                    matched: set[int] = set()
+                    k = 0
+                    while True:
                         P_k = sp_output_pubkey(shared, B_spend_b, k)
-                        if P_k[1:] == x_only:           # compare x-only (drop prefix)
-                            found.append({
-                                'txid':         tx['txid'],
-                                'vout':         out.get('vout', k),
-                                'value':        out['value'],
-                                'x_only_pubkey': x_only.hex(),
-                                'k':             k,
-                                'block_height':  bh,
-                                'shared_secret': shared.hex(),
-                            })
+                        x_k = P_k[1:]
+                        m = next((idx for idx, (vi, x, _) in enumerate(p2tr)
+                                  if vi not in matched and x == x_k), None)
+                        if m is None:
+                            break
+                        vi, x_only, out = p2tr[m]
+                        matched.add(vi)
+                        found.append({
+                            'txid':          tx['txid'],
+                            'vout':          out.get('vout', vi),
+                            'value':         out['value'],
+                            'x_only_pubkey': x_only.hex(),
+                            'k':             k,
+                            'block_height':  bh,
+                            'shared_secret': shared.hex(),
+                        })
+                        k += 1
                 except Exception:
                     continue
 
@@ -374,6 +515,7 @@ def action_sweep(req: dict[str, Any]) -> dict[str, Any]:
 ACTIONS = {
     'identify': action_identify,
     'scan':     action_scan,
+    'scan_tx':  action_scan_tx,
     'sweep':    action_sweep,
 }
 

@@ -153,6 +153,9 @@ function SpSection() {
   const [tip, setTip] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanErr, setScanErr] = useState('');
+  const [txid, setTxid] = useState('');
+  const [scanningTx, setScanningTx] = useState(false);
+  const [scanTxErr, setScanTxErr] = useState('');
   const [discovering, setDiscovering] = useState(false);
   const [discoverErr, setDiscoverErr] = useState('');
   const [utxos, setUtxos] = useState<SpUtxo[]>([]);
@@ -219,6 +222,24 @@ function SpSection() {
       setScanning(false);
     }
   }, [server, birthday, tip]);
+
+  const handleScanTx = useCallback(async () => {
+    setScanTxErr('');
+    setUtxos([]);
+    setSweepResult(null);
+    setScanningTx(true);
+    try {
+      const res = await sendToBackground({ type: 'sp:scan_tx', txid: txid.trim() });
+      if (res?.error) { setScanTxErr(res.error); return; }
+      const data = res?.result as { status: string; utxos?: SpUtxo[]; error?: string };
+      if (data?.status === 'ok') setUtxos(data.utxos ?? []);
+      else setScanTxErr(data?.error ?? 'Unexpected response from native host');
+    } catch (e) {
+      setScanTxErr(e instanceof Error ? e.message : 'Scan failed');
+    } finally {
+      setScanningTx(false);
+    }
+  }, [txid]);
 
   const handleDiscover = useCallback(async () => {
     if (!ndk || session.status !== 'unlocked') return;
@@ -476,6 +497,29 @@ function SpSection() {
                   : <><IconScan size={14} /> Scan for payments</>}
               </button>
               {scanErr && <p className="text-xs text-red-500">{scanErr}</p>}
+
+              <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 space-y-2">
+                <label className="block text-xs text-zinc-400">Or scan a specific transaction</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={txid}
+                    onChange={e => setTxid(e.target.value)}
+                    placeholder="txid (64 hex chars)"
+                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-zinc-200 dark:border-zinc-700 bg-transparent focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <button
+                    onClick={() => void handleScanTx()}
+                    disabled={scanningTx || !txid.trim()}
+                    className="px-3 py-1.5 rounded border border-accent text-accent text-xs font-medium hover:bg-accent/10 disabled:opacity-40 transition-colors flex items-center gap-1 whitespace-nowrap"
+                  >
+                    {scanningTx
+                      ? <><IconLoader2 size={12} className="animate-spin" /> Checking...</>
+                      : <><IconScan size={12} /> Check tx</>}
+                  </button>
+                </div>
+                {scanTxErr && <p className="text-xs text-red-500">{scanTxErr}</p>}
+              </div>
 
               {utxos.length > 0 && (
                 <div className="space-y-2">

@@ -4,10 +4,11 @@ import type { NIP07Method, ApprovalResult, PendingApproval, BridgeNip07Request }
 import { deriveScanPriv, deriveSpendPriv, deriveSpendPub } from '../src/core/nsp';
 
 interface SpRequest {
-  type: 'sp:identify' | 'sp:scan' | 'sp:sweep';
+  type: 'sp:identify' | 'sp:scan' | 'sp:scan_tx' | 'sp:sweep';
   server?: string;
   birthdayHeight?: number;
   tipHeight?: number;
+  txid?: string;
   utxos?: unknown[];
   destination?: string;
   feeRate?: number;
@@ -228,7 +229,7 @@ export default defineBackground(() => {
         }
       }
 
-      if (msg.type === 'sp:identify' || msg.type === 'sp:scan' || msg.type === 'sp:sweep') {
+      if (msg.type === 'sp:identify' || msg.type === 'sp:scan' || msg.type === 'sp:scan_tx' || msg.type === 'sp:sweep') {
         handleSpRequest(msg as SpRequest)
           .then(result => sendResponse({ result }))
           .catch((err: unknown) =>
@@ -313,6 +314,17 @@ async function handleSpRequest(req: SpRequest): Promise<unknown> {
       server:          req.server ?? 'https://silentpayments.xyz/api',
       birthday_height: req.birthdayHeight ?? 0,
       tip_height:      req.tipHeight ?? 0,
+    });
+  }
+
+  if (req.type === 'sp:scan_tx') {
+    const pubkey = await getActivePubkey();
+    if (!pubkey) throw new Error('No active account');
+    return callNativeHost({
+      action:    'scan_tx',
+      scan_priv: deriveScanPriv(privHex),
+      spend_pub: deriveSpendPub(pubkey),
+      txid:      req.txid ?? '',
     });
   }
 
