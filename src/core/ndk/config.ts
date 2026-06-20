@@ -3,5 +3,7 @@ export const DEFAULT_RELAYS = [
   'wss://nos.lol',
   'wss://relay.primal.net',
   'wss://relay.nostr.band',
-  'wss://nostr.wine',
+  'wss://nostr.mom',
+  'wss://offchain.pub',
+  'wss://relay.getalby.com',
 ] as const;

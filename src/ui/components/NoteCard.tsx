@@ -396,6 +396,15 @@ export function NoteCard({ event, pinned = false }: { event: NDKEvent; pinned?: 
                       className="w-full text-left px-3 py-1.5 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
                       Copy note ID
                     </button>
+                    <a
+                      href={`https://njump.me/${nip19.neventEncode({ id: event.id, author: event.pubkey })}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => { e.stopPropagation(); setMenuOpen(false); }}
+                      className="block w-full text-left px-3 py-1.5 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      Share on njump.me
+                    </a>
                   </div>
                 </>
               )}

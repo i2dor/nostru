@@ -118,8 +118,9 @@ export function SettingsScreen({ onOpenWallet, onOpenPermissions, narrow, wideLa
     const poll = () => {
       const map = new Map<string, RelayStatus>();
       for (const { url } of relays) {
-        const normalized = normalizeUrl(url);
-        const relay = ndk.pool.relays.get(normalized);
+        const withSlash = normalizeUrl(url);
+        const withoutSlash = withSlash.endsWith('/') ? withSlash.slice(0, -1) : withSlash;
+        const relay = ndk.pool.relays.get(withSlash) ?? ndk.pool.relays.get(withoutSlash) ?? ndk.pool.relays.get(url);
         const status = relay?.status ?? -1;
         map.set(url, { url, ...relayStatusFlags(status) });
       }
@@ -325,6 +326,15 @@ export function SettingsScreen({ onOpenWallet, onOpenPermissions, narrow, wideLa
         >
           Connected sites
         </button>
+        <a
+          href="https://nostru.net"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between w-full py-2 text-sm hover:text-accent transition-colors"
+        >
+          <span>Get your name@nostru.net</span>
+          <span className="text-xs text-zinc-400">nostru.net</span>
+        </a>
       </section>
 
       {blockedPubkeys.length > 0 && (
