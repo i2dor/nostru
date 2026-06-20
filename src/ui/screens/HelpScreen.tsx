@@ -27,7 +27,21 @@ function Code({ children }: { children: React.ReactNode }) {
   return <code className="font-mono text-[10px] bg-zinc-100 dark:bg-zinc-800 px-1 rounded">{children}</code>;
 }
 
-function StartSection() {
+function NavLink({ label, onNavigate, target }: { label: string; onNavigate: (s: Section) => void; target: Section }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onNavigate(target)}
+      className="text-accent hover:underline font-medium"
+    >
+      {label}
+    </button>
+  );
+}
+
+interface SectionProps { onNavigate: (s: Section) => void }
+
+function StartSection({ onNavigate }: SectionProps) {
   return (
     <>
       <H2>What is Nostru?</H2>
@@ -52,14 +66,18 @@ function StartSection() {
         BIP-352-compatible wallet, they do not need Nostru.
       </P>
       <P>
-        Anyone who knows your npub can also compute your SP address without asking you -
-        this is by design. See the Payment identity section for how to control this.
+        By default (Social mode), anyone who knows your npub can compute your SP address
+        without asking you. To avoid this, publish a separate address using
+        Deterministic or Independent mode via the Wallet screen - those addresses are
+        not computable from your npub alone. See{' '}
+        <NavLink label="Payment identity" onNavigate={onNavigate} target="identity" />{' '}
+        for how to choose.
       </P>
     </>
   );
 }
 
-function SpSection() {
+function SpSection(_: SectionProps) {
   return (
     <>
       <H2>How Silent Payments work</H2>
@@ -98,7 +116,7 @@ function SpSection() {
   );
 }
 
-function IdentitySection() {
+function IdentitySection(_: SectionProps) {
   return (
     <>
       <H2>Three modes</H2>
@@ -161,7 +179,7 @@ function IdentitySection() {
   );
 }
 
-function ScanSection() {
+function ScanSection(_: SectionProps) {
   return (
     <>
       <H2>Native host setup</H2>
@@ -204,7 +222,7 @@ function ScanSection() {
   );
 }
 
-function NwcSection() {
+function NwcSection(_: SectionProps) {
   return (
     <>
       <H2>What is NWC?</H2>
@@ -238,7 +256,7 @@ function NwcSection() {
   );
 }
 
-const CONTENT: Record<Section, () => React.ReactElement> = {
+const CONTENT: Record<Section, (props: SectionProps) => React.ReactElement> = {
   start:    StartSection,
   sp:       SpSection,
   identity: IdentitySection,
@@ -269,7 +287,7 @@ export function HelpScreen() {
         ))}
       </nav>
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <Content />
+        <Content onNavigate={setActive} />
         <p className="text-[10px] text-zinc-300 dark:text-zinc-700 mt-6">
           Nostru v{chrome.runtime.getManifest().version}
         </p>
