@@ -40,7 +40,9 @@ const DEFAULT_RELAY_URLS = [
   'wss://nos.lol',
   'wss://relay.primal.net',
   'wss://relay.nostr.band',
-  'wss://nostr.wine',
+  'wss://nostr.mom',
+  'wss://offchain.pub',
+  'wss://relay.getalby.com',
 ];
 
 interface NostrEvent {
