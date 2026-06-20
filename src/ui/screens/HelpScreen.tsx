@@ -270,6 +270,9 @@ export function HelpScreen() {
       </nav>
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <Content />
+        <p className="text-[10px] text-zinc-300 dark:text-zinc-700 mt-6">
+          Nostru v{chrome.runtime.getManifest().version}
+        </p>
       </div>
     </div>
   );

@@ -381,6 +381,9 @@ export function SettingsScreen({ onOpenWallet, onOpenPermissions, onOpenHelp, na
           </ul>
         </section>
       )}
+      <p className="px-4 py-4 text-[10px] text-zinc-300 dark:text-zinc-700">
+        v{chrome.runtime.getManifest().version}
+      </p>
     </div>
   );
 }

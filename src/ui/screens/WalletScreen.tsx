@@ -703,7 +703,7 @@ function SpSection() {
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-xs text-zinc-400 mb-1 flex items-center gap-1">Birthday height <InfoTip text="The block height when you first used this SP address. Scanning starts here. Set it too early and you scan more blocks than needed; set it too late and you miss payments. Write it down when you share your address." side="left" /></label>
+                  <label className="flex items-center gap-1 text-xs text-zinc-400 mb-1">Birthday height <InfoTip text="The block height when you first used this SP address. Scanning starts here. Set it too early and you scan more blocks than needed; set it too late and you miss payments. Write it down when you share your address." /></label>
                   <input
                     type="number"
                     value={birthday}
@@ -723,7 +723,7 @@ function SpSection() {
                   {discoverErr && <p className="text-xs text-red-500 mt-0.5">{discoverErr}</p>}
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs text-zinc-400 mb-1 flex items-center gap-1">Tip height (opt) <InfoTip text="Stop scanning at this block height. Leave blank to scan to the current chain tip. Useful to limit scan time or reproduce a scan at a specific point in history." side="left" /></label>
+                  <label className="flex items-center gap-1 text-xs text-zinc-400 mb-1">Tip height (opt) <InfoTip text="Stop scanning at this block height. Leave blank to scan to the current chain tip. Useful to limit scan time or reproduce a scan at a specific point in history." /></label>
                   <input
                     type="number"
                     value={tip}
