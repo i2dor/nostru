@@ -212,16 +212,23 @@ function NspRow({ pubkey, overrideAddress }: { pubkey: string; overrideAddress?:
 
 function CopyNpubRow({ pubkey }: { pubkey: string }) {
   const [copied, setCopied] = useState<'npub' | 'nprofile' | null>(null);
-  const fullNpub = encodePubkey(pubkey);
+
+  if (!pubkey || pubkey.length !== 64) return null;
+
+  let fullNpub: string;
+  try { fullNpub = encodePubkey(pubkey); } catch { return null; }
 
   const copy = (type: 'npub' | 'nprofile') => {
-    const text = type === 'npub'
-      ? fullNpub
-      : nip19.nprofileEncode({ pubkey, relays: ['wss://relay.damus.io', 'wss://nos.lol'] });
+    let text: string;
+    try {
+      text = type === 'npub'
+        ? fullNpub
+        : nip19.nprofileEncode({ pubkey, relays: ['wss://relay.damus.io', 'wss://nos.lol'] });
+    } catch { return; }
     navigator.clipboard.writeText(text).then(() => {
       setCopied(type);
       setTimeout(() => setCopied(null), 1500);
-    });
+    }).catch(() => {});
   };
 
   return (
