@@ -19,7 +19,7 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
     <div className="flex flex-col h-full items-center justify-center px-6 py-8">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-2">
-          <div className="text-3xl font-bold tracking-tight text-accent">Nostru</div>
+          <div className="text-3xl font-bold tracking-tight text-accent dark:text-accent-light">Nostru</div>
           <p className="text-sm text-zinc-500 leading-relaxed">
             A Nostr client where you own your identity.<br />
             No server can ban you. No company can delete you.
@@ -29,8 +29,8 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
         <ul className="space-y-3">
           {FEATURES.map(({ icon: Icon, text }) => (
             <li key={text} className="flex items-start gap-3">
-              <span className="mt-0.5 shrink-0 w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
-                <Icon size={15} className="text-accent" />
+              <span className="mt-0.5 shrink-0 w-7 h-7 rounded-lg bg-accent/10 dark:bg-accent-light/10 flex items-center justify-center">
+                <Icon size={15} className="text-accent dark:text-accent-light" />
               </span>
               <span className="text-sm text-zinc-600 dark:text-zinc-300 leading-snug">{text}</span>
             </li>
