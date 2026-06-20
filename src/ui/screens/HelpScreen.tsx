@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { IconBook, IconBolt, IconScan, IconShield, IconKey } from '@tabler/icons-react';
+import { IconBook, IconBolt, IconScan, IconShield, IconKey, IconGitFork } from '@tabler/icons-react';
 
-type Section = 'start' | 'sp' | 'identity' | 'scan' | 'nwc';
+type Section = 'start' | 'sp' | 'identity' | 'scan' | 'nwc' | 'contribute';
 
 const SECTIONS: { id: Section; icon: typeof IconBook; label: string }[] = [
-  { id: 'start',    icon: IconBook,   label: 'Getting started' },
-  { id: 'sp',       icon: IconKey,    label: 'Silent Payments' },
-  { id: 'identity', icon: IconShield, label: 'Payment identity' },
-  { id: 'scan',     icon: IconScan,   label: 'Scanning' },
-  { id: 'nwc',      icon: IconBolt,   label: 'NWC wallet' },
+  { id: 'start',      icon: IconBook,     label: 'Getting started' },
+  { id: 'sp',         icon: IconKey,      label: 'Silent Payments' },
+  { id: 'identity',   icon: IconShield,   label: 'Payment identity' },
+  { id: 'scan',       icon: IconScan,     label: 'Scanning' },
+  { id: 'nwc',        icon: IconBolt,     label: 'NWC wallet' },
+  { id: 'contribute', icon: IconGitFork,  label: 'Contribute' },
 ];
 
 function H2({ children }: { children: React.ReactNode }) {
@@ -256,12 +257,74 @@ function NwcSection(_: SectionProps) {
   );
 }
 
+function ExtLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-accent hover:underline font-medium"
+    >
+      {children}
+    </a>
+  );
+}
+
+function ContributeSection(_: SectionProps) {
+  return (
+    <>
+      <H2>Open source</H2>
+      <P>
+        Nostru is open source and free to use, study, and build on. If the idea of
+        connecting Nostr identities to Bitcoin Silent Payments resonates with you,
+        contributions of any kind are welcome.
+      </P>
+      <P>
+        <ExtLink href="https://github.com/i2dor/nostru">github.com/i2dor/nostru</ExtLink>
+      </P>
+
+      <H2>Ways to get involved</H2>
+      <ul className="list-disc list-inside space-y-2 mb-3">
+        <Li>
+          <strong>Found a bug?</strong> Open an issue on GitHub with steps to reproduce.
+          The more specific, the faster it gets fixed.
+        </Li>
+        <Li>
+          <strong>Have an idea?</strong> Open a GitHub issue tagged "enhancement". No
+          idea is too small - UX friction, missing features, rough edges.
+        </Li>
+        <Li>
+          <strong>Want to code?</strong> Fork the repo, make your change, open a PR.
+          Check open issues for things already on the list.
+        </Li>
+        <Li>
+          <strong>Know Nostr protocol?</strong> NIP-352 (kind:10352) is a draft. If
+          you see gaps or improvements to the spec, open a discussion.
+        </Li>
+        <Li>
+          <strong>Speak another language?</strong> The README has translations - adding
+          or improving one is a great first contribution.
+        </Li>
+      </ul>
+
+      <H2>Discuss on Nostr</H2>
+      <P>
+        For questions, feedback, or just to say the project exists:{' '}
+        <ExtLink href="https://njump.me/npub17ph4attxued865ehp9j6dtfhpzj9az55wvur8dzq6t4y633qveuqvn9wf7">
+          @nostru on Nostr
+        </ExtLink>
+      </P>
+    </>
+  );
+}
+
 const CONTENT: Record<Section, (props: SectionProps) => React.ReactElement> = {
-  start:    StartSection,
-  sp:       SpSection,
-  identity: IdentitySection,
-  scan:     ScanSection,
-  nwc:      NwcSection,
+  start:      StartSection,
+  sp:         SpSection,
+  identity:   IdentitySection,
+  scan:       ScanSection,
+  nwc:        NwcSection,
+  contribute: ContributeSection,
 };
 
 export function HelpScreen() {
