@@ -102,7 +102,8 @@ function LikeCard({ event }: { event: NDKEvent }) {
 
 function ZapSenderName({ pubkey }: { pubkey: string }) {
   const profile = useProfile(pubkey);
-  return <>{profile?.displayName ?? profile?.name ?? truncateNpub(encodePubkey(pubkey))}</>;
+  const fallback = pubkey.length === 64 ? truncateNpub(encodePubkey(pubkey)) : pubkey.slice(0, 12);
+  return <>{profile?.displayName ?? profile?.name ?? fallback}</>;
 }
 
 function ZapCard({ event }: { event: NDKEvent }) {
@@ -522,7 +523,7 @@ export function ProfileView({ pubkey }: { pubkey: string }) {
 
   const { events, eose, component } = tabContent();
 
-  const npub = truncateNpub(encodePubkey(pubkey));
+  const npub = pubkey.length === 64 ? truncateNpub(encodePubkey(pubkey)) : pubkey.slice(0, 12);
   const displayName = profile?.displayName ?? profile?.name ?? npub;
 
   return (
@@ -761,7 +762,7 @@ export function ProfileView({ pubkey }: { pubkey: string }) {
 function FollowListRow({ pubkey }: { pubkey: string }) {
   const profile = useProfile(pubkey);
   const { push } = useNav();
-  const npubShort = truncateNpub(encodePubkey(pubkey));
+  const npubShort = pubkey.length === 64 ? truncateNpub(encodePubkey(pubkey)) : pubkey.slice(0, 12);
   const name = profile?.displayName ?? profile?.name ?? npubShort;
   const hue = parseInt(pubkey.slice(0, 4), 16) % 360;
 
