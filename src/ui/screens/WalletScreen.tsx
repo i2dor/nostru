@@ -15,6 +15,7 @@ import { generatePaymentPriv, savePaymentKey, loadPaymentKey, clearPaymentKey } 
 import { publishNip352Address } from '../../core/events/nip352';
 import { getIdentityIndex, setIdentityIndex } from '../../core/store/identityIndex';
 import type { PaymentMode } from '../../core/sp/scanKeys';
+import { InfoTip } from '../components/InfoTip';
 
 // ── NWC Wallet ────────────────────────────────────────────────────────────
 
@@ -498,6 +499,7 @@ function SpSection() {
         <div className="flex items-center gap-2">
           <IconScan size={16} className="text-zinc-400" />
           <span className="text-sm font-medium">Silent Payments (NSP)</span>
+          <InfoTip text="NSP lets you receive Bitcoin silently. Your SP address is derived from your Nostr key - no address exchange needed. Senders pay you; you scan locally to detect UTXOs." />
           {status === 'checking' && <IconLoader2 size={13} className="animate-spin text-zinc-400" />}
           {status === 'not-installed' && <IconAlertTriangle size={13} className="text-amber-400" />}
           {status === 'ready' && utxos.length > 0 && (
@@ -548,6 +550,7 @@ function SpSection() {
                   ? <><IconLoader2 size={10} className="animate-spin" />Publishing...</>
                   : <><IconUpload size={10} />Publish to Nostr (NIP-352)</>}
               </button>
+              <InfoTip text="Publishes your SP address as a kind:10352 Nostr event. Senders who query your npub will find this address instead of computing it from your key. Required for deterministic and independent modes." />
               {publishedAt && !publishing && (
                 <span className="text-xs text-green-500 flex items-center gap-1">
                   <IconCheck size={10} />Published
@@ -557,8 +560,10 @@ function SpSection() {
             </div>
             <div className="flex items-center gap-1.5 px-1 flex-wrap">
               <span className="text-xs text-zinc-400">Identity:</span>
+              <InfoTip text="Social: SP address derived from your Nostr key. Anyone can compute it from your npub. Det.: separate address derived from your key + an index, recoverable from the same seed. Indep.: fully separate keypair, maximum separation, requires its own backup." />
               {(['social', 'deterministic', 'independent'] as const).map(m => (
                 <button key={m} onClick={() => { setPaymentMode(m); setPublishedAt(null); }}
+                  title={m === 'social' ? 'SP address derived directly from your Nostr key' : m === 'deterministic' ? 'Separate SP address derived from your key + an index number' : 'SP address from a fully independent keypair'}
                   className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${paymentMode === m ? 'border-accent text-accent bg-accent/10' : 'border-zinc-300 dark:border-zinc-600 text-zinc-500 hover:text-accent'}`}>
                   {m === 'social' ? 'Social' : m === 'deterministic' ? 'Det.' : 'Indep.'}
                 </button>
@@ -698,7 +703,7 @@ function SpSection() {
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-xs text-zinc-400 mb-1">Birthday height</label>
+                  <label className="block text-xs text-zinc-400 mb-1 flex items-center gap-1">Birthday height <InfoTip text="The block height when you first used this SP address. Scanning starts here. Set it too early and you scan more blocks than needed; set it too late and you miss payments. Write it down when you share your address." side="left" /></label>
                   <input
                     type="number"
                     value={birthday}
@@ -718,7 +723,7 @@ function SpSection() {
                   {discoverErr && <p className="text-xs text-red-500 mt-0.5">{discoverErr}</p>}
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs text-zinc-400 mb-1">Tip height (opt)</label>
+                  <label className="block text-xs text-zinc-400 mb-1 flex items-center gap-1">Tip height (opt) <InfoTip text="Stop scanning at this block height. Leave blank to scan to the current chain tip. Useful to limit scan time or reproduce a scan at a specific point in history." side="left" /></label>
                   <input
                     type="number"
                     value={tip}

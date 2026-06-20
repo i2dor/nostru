@@ -87,9 +87,10 @@ function RwToggle({ active, label, onClick }: { active: boolean; label: string; 
   );
 }
 
-export function SettingsScreen({ onOpenWallet, onOpenPermissions, narrow, wideLayout, onWideLayoutChange }: {
+export function SettingsScreen({ onOpenWallet, onOpenPermissions, onOpenHelp, narrow, wideLayout, onWideLayoutChange }: {
   onOpenWallet: () => void;
   onOpenPermissions: () => void;
+  onOpenHelp: () => void;
   narrow: boolean;
   wideLayout: boolean;
   onWideLayoutChange: (v: boolean) => Promise<void>;
@@ -325,6 +326,12 @@ export function SettingsScreen({ onOpenWallet, onOpenPermissions, narrow, wideLa
           className="w-full text-left py-2 text-sm hover:text-accent transition-colors"
         >
           Connected sites
+        </button>
+        <button
+          onClick={onOpenHelp}
+          className="w-full text-left py-2 text-sm hover:text-accent transition-colors"
+        >
+          Help &amp; docs
         </button>
         <a
           href="https://nostru.net"

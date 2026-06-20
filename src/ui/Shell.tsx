@@ -30,6 +30,7 @@ import { NotificationsScreen } from './screens/NotificationsScreen';
 import { SearchScreen } from './screens/SearchScreen';
 import { BookmarksScreen } from './screens/BookmarksScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { HelpScreen } from './screens/HelpScreen';
 import { EventRefView } from './screens/EventRefView';
 import { WalletProvider } from './context/WalletContext';
 import { FeedView } from './feed/FeedView';
@@ -37,7 +38,7 @@ import { truncateNpub, encodePubkey } from '../core/keys';
 import { getTheme, applyTheme } from '../core/store/theme';
 import { getWideLayout, setWideLayout } from '../core/store/settings';
 
-type MainView = 'app' | 'permissions' | 'settings' | 'wallet' | 'addAccount';
+type MainView = 'app' | 'permissions' | 'settings' | 'wallet' | 'addAccount' | 'help';
 
 function AccountSwitcher({ onNavigate }: { onNavigate: (view: MainView) => void }) {
   const { session, switchAccount, lock, deleteAccount } = useAccount();
@@ -171,6 +172,7 @@ function MainContent({ narrow, pubkey }: { narrow: boolean; pubkey: string }) {
     settings: 'Settings',
     wallet: 'Wallet',
     addAccount: 'Add account',
+    help: 'Help & docs',
   };
 
   const headerLeft = showBack ? (
@@ -205,10 +207,13 @@ function MainContent({ narrow, pubkey }: { narrow: boolean; pubkey: string }) {
         <SettingsScreen
           onOpenWallet={() => setMainView('wallet')}
           onOpenPermissions={() => setMainView('permissions')}
+          onOpenHelp={() => setMainView('help')}
           narrow={narrow}
           wideLayout={wideLayout}
           onWideLayoutChange={handleWideLayoutChange}
         />
+      ) : mainView === 'help' ? (
+        <HelpScreen />
       ) : mainView === 'wallet' ? (
         <WalletScreen />
       ) : mainView === 'addAccount' ? (

@@ -250,6 +250,26 @@ Share your sp1 address the same way you share any Bitcoin address. Senders use a
 
 ---
 
+## Choosing a payment identity
+
+When you publish your SP address via NIP-352, you choose how it is derived relative to your Nostr key. This controls the link between your social identity and your payment identity.
+
+| Mode | How the SP address is derived | Recovery | Trade-off |
+|------|-------------------------------|----------|-----------|
+| **Social** | Directly from your Nostr public key | Automatic from nsec | Address is permanently computable from your npub by anyone |
+| **Deterministic** | From your nsec + an index number (1, 2, 3...) | Automatic from nsec + index | Not computable from npub alone; scan key is still root-equivalent to nsec |
+| **Independent** | From a completely separate keypair | Requires a separate backup | Maximum separation; losing the payment key loses access to received UTXOs |
+
+**Social** is the simplest and the default. Your SP address is already public knowledge from your npub - NIP-352 just makes it explicit to clients that support the discovery protocol.
+
+**Deterministic** gives you a payment identity that is separate from your social identity but still recoverable from your single nsec. Use "New identity" to rotate to the next index and publish a new event. Old indexes remain scannable - keep track of which ones received funds.
+
+**Independent** gives maximum separation. Generate a dedicated payment keypair in the Wallet screen, then publish its SP address under your social npub via NIP-352. Senders discover it from your profile; the payment keypair has no mathematical link to your Nostr key. Back up the payment key separately.
+
+The practical rule: use Social if your npub is already your public identity. Use Deterministic if you want payment rotation from a single seed. Use Independent if you are prepared to manage two key backups.
+
+---
+
 ## Testing with a burner account
 
 The safest way to verify the full flow (derive, receive, scan, sweep) without risking real funds or linking it to your main identity.
