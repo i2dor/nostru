@@ -1,37 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { IconSend } from '@tabler/icons-react';
-import NDK, { type NDKEvent } from '@nostr-dev-kit/ndk';
+import { type NDKEvent, type NDKSubscription } from '@nostr-dev-kit/ndk';
 import { useNDK } from '../../core/ndk';
 import { publishNote } from '../../core/events/publish';
 import { buildReplyTags } from '../../core/events/nip10';
 import { NoteCard } from '../components/NoteCard';
 import { useFeed } from '../feed/hooks';
-
-const FETCH_TIMEOUT_MS = 5000;
-
-function withTimeout(promise: Promise<NDKEvent | null>, ms: number): Promise<NDKEvent | null> {
-  const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), ms));
-  return Promise.race([promise, timeout]);
-}
-
-async function fetchAncestors(ndk: NDK, event: NDKEvent): Promise<NDKEvent[]> {
-  const ids = [
-    ...new Set(
-      event.tags
-        .filter(t => t[0] === 'e' && t[1] && t[1] !== event.id)
-        .map(t => t[1])
-    ),
-  ];
-  if (ids.length === 0) return [];
-
-  const results = await Promise.all(
-    ids.map(id => withTimeout(ndk.fetchEvent(id).catch(() => null), FETCH_TIMEOUT_MS))
-  );
-
-  return results
-    .filter((ev): ev is NDKEvent => ev !== null)
-    .sort((a, b) => (a.created_at ?? 0) - (b.created_at ?? 0));
-}
 
 function Spinner() {
   return (
@@ -57,25 +31,51 @@ export function ThreadView({ event }: { event: NDKEvent }) {
   const [parentChain, setParentChain] = useState<NDKEvent[]>([]);
   const [chainLoading, setChainLoading] = useState(false);
 
-  const hasAncestors = useMemo(
-    () => event.tags.some(t => t[0] === 'e' && t[1] && t[1] !== event.id),
-    [event.id, event.tags],
-  );
+  // Stable string key so the effect only re-runs when the actual IDs change
+  const parentIdsKey = useMemo(() => {
+    const ids = event.tags
+      .filter(t => t[0] === 'e' && t[1] && t[1] !== event.id)
+      .map(t => t[1]);
+    return [...new Set(ids)].join(',');
+  }, [event.id, event.tags]);
 
   useEffect(() => {
-    if (!ndk || !hasAncestors) return;
-    let cancelled = false;
+    if (!ndk || !parentIdsKey) return;
+
+    const ids = parentIdsKey.split(',');
+    let stopped = false;
+    let sub: NDKSubscription | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const found = new Map<string, NDKEvent>();
+
     setChainLoading(true);
     setParentChain([]);
 
-    fetchAncestors(ndk, event).then(chain => {
-      if (cancelled) return;
+    const finish = () => {
+      if (stopped) return;
+      stopped = true;
+      if (timer !== null) clearTimeout(timer);
+      sub?.stop();
+      const chain = Array.from(found.values())
+        .sort((a, b) => (a.created_at ?? 0) - (b.created_at ?? 0));
       setParentChain(chain);
       setChainLoading(false);
-    });
+    };
 
-    return () => { cancelled = true; };
-  }, [ndk, event.id, hasAncestors]);
+    timer = setTimeout(finish, 5000);
+    sub = ndk.subscribe({ ids }, { closeOnEose: true });
+    sub.on('event', (ev: NDKEvent) => {
+      found.set(ev.id, ev);
+      if (found.size >= ids.length) finish();
+    });
+    sub.on('eose', finish);
+
+    return () => {
+      stopped = true;
+      if (timer !== null) clearTimeout(timer);
+      sub?.stop();
+    };
+  }, [ndk, event.id, parentIdsKey]);
 
   const { events: replies, eose } = useFeed(
     { kinds: [1], '#e': [event.id], limit: 100 },
@@ -98,7 +98,7 @@ export function ThreadView({ event }: { event: NDKEvent }) {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {hasAncestors && chainLoading && (
+      {!!parentIdsKey && chainLoading && (
         <div className="flex justify-center py-4">
           <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
         </div>
