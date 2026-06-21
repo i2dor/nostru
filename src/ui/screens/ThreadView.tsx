@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { IconSend } from '@tabler/icons-react';
 import type { NDKEvent } from '@nostr-dev-kit/ndk';
 import { useNDK } from '../../core/ndk';
 import { publishNote } from '../../core/events/publish';
-import { buildReplyTags } from '../../core/events/nip10';
+import { buildReplyTags, parseNIP10 } from '../../core/events/nip10';
 import { NoteCard } from '../components/NoteCard';
 import { useFeed } from '../feed/hooks';
 
@@ -15,11 +15,53 @@ function Spinner() {
   );
 }
 
+function ThreadConnector() {
+  return (
+    <div className="px-4">
+      <div className="ml-[33px] w-0.5 h-3 bg-zinc-200 dark:bg-zinc-700" />
+    </div>
+  );
+}
+
 export function ThreadView({ event }: { event: NDKEvent }) {
   const { ndk } = useNDK();
   const [replyContent, setReplyContent] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [parentChain, setParentChain] = useState<NDKEvent[]>([]);
+  const [chainLoading, setChainLoading] = useState(false);
+
+  const { root, reply: parent } = useMemo(() => parseNIP10(event.tags), [event.tags]);
+
+  const hasAncestors = !!(root?.id || parent?.id);
+
+  useEffect(() => {
+    if (!ndk || !hasAncestors) return;
+    let cancelled = false;
+    setChainLoading(true);
+
+    async function fetchChain() {
+      const chain: NDKEvent[] = [];
+
+      if (root?.id && root.id !== event.id) {
+        const rootEv = await ndk!.fetchEvent(root.id).catch(() => null);
+        if (!cancelled && rootEv) chain.push(rootEv);
+      }
+
+      if (parent?.id && parent.id !== root?.id && parent.id !== event.id) {
+        const parentEv = await ndk!.fetchEvent(parent.id).catch(() => null);
+        if (!cancelled && parentEv) chain.push(parentEv);
+      }
+
+      if (!cancelled) {
+        setParentChain(chain);
+        setChainLoading(false);
+      }
+    }
+
+    void fetchChain();
+    return () => { cancelled = true; };
+  }, [ndk, event.id, root, parent, hasAncestors]);
 
   const { events: replies, eose } = useFeed(
     { kinds: [1], '#e': [event.id], limit: 100 },
@@ -42,7 +84,25 @@ export function ThreadView({ event }: { event: NDKEvent }) {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <NoteCard event={event} />
+      {hasAncestors && chainLoading && (
+        <div className="flex justify-center py-4">
+          <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+        </div>
+      )}
+
+      {parentChain.map((ancestor, i) => (
+        <div key={ancestor.id}>
+          <NoteCard event={ancestor} />
+          {i < parentChain.length - 1 && <ThreadConnector />}
+        </div>
+      ))}
+
+      {parentChain.length > 0 && <ThreadConnector />}
+
+      <div className="border-l-2 border-accent/30">
+        <NoteCard event={event} />
+      </div>
+
       <div className="border-b border-zinc-100 dark:border-zinc-800 p-3 space-y-2 bg-zinc-50 dark:bg-zinc-900/50">
         <textarea
           value={replyContent}
@@ -64,6 +124,7 @@ export function ThreadView({ event }: { event: NDKEvent }) {
           </button>
         </div>
       </div>
+
       <div>
         {!eose && replies.length === 0 && <Spinner />}
         {replies.map(r => <NoteCard key={r.id} event={r} />)}
