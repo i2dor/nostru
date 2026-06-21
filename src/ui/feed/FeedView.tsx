@@ -6,6 +6,8 @@ import { NoteCard } from '../components/NoteCard';
 import { Composer } from '../components/Composer';
 import { useFeed, useFollows, useGlobalFeed, useBlocks, useMutes, useProfile } from './hooks';
 import { encodePubkey, truncateNpub } from '../../core/keys';
+import { isSpam } from '../../core/feed/spamFilter';
+import { getSpamFilterEnabled } from '../../core/store/spamFilter';
 
 function Spinner() {
   return (
@@ -110,9 +112,15 @@ function GlobalFeed({ optimistic }: { optimistic: NDKEvent[] }) {
   const blocks = useBlocks();
   const mutes = useMutes();
   const { events, eose } = useGlobalFeed(ndk);
+  const [spamFilter, setSpamFilter] = useState(true);
+
+  useEffect(() => { getSpamFilterEnabled().then(setSpamFilter); }, []);
+
   const all = useMemo(
-    () => mergeWithOptimistic(events, optimistic).filter(ev => !blocks.has(ev.pubkey) && !mutes.has(ev.pubkey)),
-    [events, optimistic, blocks, mutes],
+    () => mergeWithOptimistic(events, optimistic).filter(ev =>
+      !blocks.has(ev.pubkey) && !mutes.has(ev.pubkey) && !(spamFilter && isSpam(ev)),
+    ),
+    [events, optimistic, blocks, mutes, spamFilter],
   );
 
   if (!ndk) return <Spinner />;

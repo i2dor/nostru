@@ -5,6 +5,7 @@ vi.mock('../../core/ndk', () => ({ useNDK: vi.fn(() => ({ ndk: null, connected: 
 vi.mock('../../core/store/relays', () => ({ getSavedRelays: vi.fn(() => Promise.resolve([])), saveRelays: vi.fn(), type: {} }));
 vi.mock('../../core/store/settings', () => ({ getNewTabOverride: vi.fn(() => Promise.resolve(false)), setNewTabOverride: vi.fn() }));
 vi.mock('../../core/store/theme', () => ({ setTheme: vi.fn(), applyTheme: vi.fn() }));
+vi.mock('../../core/store/spamFilter', () => ({ getSpamFilterEnabled: vi.fn(async () => true), setSpamFilterEnabled: vi.fn() }));
 
 import { relayStatusFlags } from './SettingsScreen';
 

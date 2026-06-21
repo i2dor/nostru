@@ -10,6 +10,7 @@ import { removeMute, getMutes } from '../../core/store/mutes';
 import { publishMuteList, publishRelayList } from '../../core/events/lists';
 import { encodePubkey, truncateNpub } from '../../core/keys';
 import { getNewTabOverride, setNewTabOverride } from '../../core/store/settings';
+import { getSpamFilterEnabled, setSpamFilterEnabled } from '../../core/store/spamFilter';
 
 interface RelayStatus {
   url: string;
@@ -104,6 +105,7 @@ export function SettingsScreen({ onOpenWallet, onOpenPermissions, onOpenHelp, na
     () => document.documentElement.classList.contains('dark') ? 'dark' : 'light',
   );
   const [newTabOverrideState, setNewTabOverrideState] = useState(false);
+  const [spamFilterState, setSpamFilterState] = useState(true);
   const blocks = useBlocks();
   const mutes = useMutes();
   const blockedPubkeys = Array.from(blocks);
@@ -112,6 +114,7 @@ export function SettingsScreen({ onOpenWallet, onOpenPermissions, onOpenHelp, na
   useEffect(() => {
     getSavedRelays().then(setRelays);
     getNewTabOverride().then(setNewTabOverrideState);
+    getSpamFilterEnabled().then(setSpamFilterState);
   }, []);
 
   useEffect(() => {
@@ -223,6 +226,11 @@ export function SettingsScreen({ onOpenWallet, onOpenPermissions, onOpenHelp, na
     await setNewTabOverride(v);
   }, []);
 
+  const handleSpamFilterChange = useCallback(async (v: boolean) => {
+    setSpamFilterState(v);
+    await setSpamFilterEnabled(v);
+  }, []);
+
   return (
     <div className="flex-1 overflow-y-auto">
       <section className="px-4 py-4 border-b border-zinc-100 dark:border-zinc-800">
@@ -255,6 +263,22 @@ export function SettingsScreen({ onOpenWallet, onOpenPermissions, onOpenHelp, na
           <span className="text-sm">Override new tab page</span>
           <span className={`w-8 h-4 rounded-full transition-colors relative ${newTabOverrideState ? 'bg-accent' : 'bg-zinc-300 dark:bg-zinc-600'}`}>
             <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${newTabOverrideState ? 'translate-x-4' : 'translate-x-0.5'}`} />
+          </span>
+        </button>
+      </section>
+
+      <section className="px-4 py-4 border-b border-zinc-100 dark:border-zinc-800">
+        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Feed</h2>
+        <button
+          onClick={() => void handleSpamFilterChange(!spamFilterState)}
+          className="flex items-center justify-between w-full py-2"
+        >
+          <div>
+            <span className="text-sm">Filter spam in Global feed</span>
+            <p className="text-xs text-zinc-400 mt-0.5">Hides link-only posts and hashtag-stuffed notes</p>
+          </div>
+          <span className={`w-8 h-4 rounded-full transition-colors relative shrink-0 ml-4 ${spamFilterState ? 'bg-accent' : 'bg-zinc-300 dark:bg-zinc-600'}`}>
+            <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${spamFilterState ? 'translate-x-4' : 'translate-x-0.5'}`} />
           </span>
         </button>
       </section>
