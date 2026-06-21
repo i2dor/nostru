@@ -3,6 +3,7 @@ import NDK, { NDKEvent } from '@nostr-dev-kit/ndk';
 import { IconRepeat } from '@tabler/icons-react';
 import { useNDK } from '../../core/ndk';
 import { NoteCard } from '../components/NoteCard';
+import { ArticleCard } from '../components/ArticleCard';
 import { Composer } from '../components/Composer';
 import { useFeed, useFollows, useGlobalFeed, useBlocks, useMutes, useProfile } from './hooks';
 import { encodePubkey, truncateNpub } from '../../core/keys';
@@ -80,6 +81,7 @@ function RepostCard({ event }: { event: NDKEvent }) {
 
 function EventCard({ event, onQuote }: { event: NDKEvent; onQuote?: (url: string, eventId: string) => void }) {
   if (event.kind === 6) return <RepostCard event={event} />;
+  if (event.kind === 30023) return <ArticleCard event={event} />;
   return <NoteCard event={event} onQuote={onQuote} />;
 }
 
@@ -88,7 +90,7 @@ function FollowingFeed({ pubkey, optimistic, onQuote }: { pubkey: string; optimi
   const blocks = useBlocks();
   const mutes = useMutes();
   const filter = useMemo(
-    () => ({ kinds: [1, 6] as number[], authors: follows ?? [], limit: 50 }),
+    () => ({ kinds: [1, 6, 30023] as number[], authors: follows ?? [], limit: 50 }),
     [follows],
   );
   const { events, eose } = useFeed(filter, follows !== null && follows.length > 0);

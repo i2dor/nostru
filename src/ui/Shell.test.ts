@@ -35,6 +35,7 @@ vi.mock('./screens/BookmarksScreen', () => ({ BookmarksScreen: vi.fn(() => null)
 vi.mock('./screens/SettingsScreen', () => ({ SettingsScreen: vi.fn(() => null) }));
 vi.mock('./screens/HelpScreen', () => ({ HelpScreen: vi.fn(() => null) }));
 vi.mock('./screens/EventRefView', () => ({ EventRefView: vi.fn(() => null) }));
+vi.mock('./screens/ArticleView', () => ({ ArticleView: vi.fn(() => null) }));
 vi.mock('./feed/FeedView', () => ({ FeedView: vi.fn(() => null) }));
 vi.mock('../core/keys', () => ({ truncateNpub: vi.fn(s => s), encodePubkey: vi.fn(s => s) }));
 vi.mock('../core/store/theme', () => ({ getTheme: vi.fn(), applyTheme: vi.fn() }));

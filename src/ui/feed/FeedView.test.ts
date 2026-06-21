@@ -10,6 +10,7 @@ vi.mock('./hooks', () => ({
   useProfile: vi.fn(() => null),
 }));
 vi.mock('../components/NoteCard', () => ({ NoteCard: vi.fn(() => null) }));
+vi.mock('../components/ArticleCard', () => ({ ArticleCard: vi.fn(() => null) }));
 vi.mock('../components/Composer', () => ({ Composer: vi.fn(() => null) }));
 vi.mock('../../core/keys', () => ({ encodePubkey: vi.fn(s => s), truncateNpub: vi.fn(s => s) }));
 vi.mock('../../core/feed/spamFilter', () => ({ isSpam: vi.fn(() => false) }));

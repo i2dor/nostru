@@ -32,6 +32,7 @@ import { BookmarksScreen } from './screens/BookmarksScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { HelpScreen } from './screens/HelpScreen';
 import { EventRefView } from './screens/EventRefView';
+import { ArticleView } from './screens/ArticleView';
 import { WalletProvider } from './context/WalletContext';
 import { FeedView } from './feed/FeedView';
 import { truncateNpub, encodePubkey } from '../core/keys';
@@ -242,6 +243,8 @@ function MainContent({ narrow, pubkey }: { narrow: boolean; pubkey: string }) {
             <EventRefView eventId={current.eventId} />
           ) : current.view === 'bookmarks' ? (
             <BookmarksScreen />
+          ) : current.view === 'article' ? (
+            <ArticleView event={current.event} />
           ) : null}
         </div>
       )}
