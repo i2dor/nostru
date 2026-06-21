@@ -7,9 +7,12 @@ import { getDraft, saveDraft, clearDraft } from '../../core/store/draft';
 
 interface ComposerProps {
   onPublished: (event: NDKEvent) => void;
+  quoteText?: string;
+  quoteEventId?: string;
+  onQuoteConsumed?: () => void;
 }
 
-export function Composer({ onPublished }: ComposerProps) {
+export function Composer({ onPublished, quoteText, quoteEventId, onQuoteConsumed }: ComposerProps) {
   const { ndk } = useNDK();
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState('');
@@ -18,10 +21,25 @@ export function Composer({ onPublished }: ComposerProps) {
   const [error, setError] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quoteEventIdRef = useRef('');
 
   useEffect(() => {
     getDraft().then(d => { if (d) setHasDraft(true); });
   }, []);
+
+  useEffect(() => {
+    if (!quoteText) return;
+    quoteEventIdRef.current = quoteEventId ?? '';
+    setContent(quoteText);
+    setOpen(true);
+    onQuoteConsumed?.();
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(0, 0);
+      }
+    }, 0);
+  }, [quoteText, quoteEventId, onQuoteConsumed]);
 
   const scheduleAutoSave = useCallback((text: string) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -64,7 +82,10 @@ export function Composer({ onPublished }: ComposerProps) {
     setError('');
     setBusy(true);
     try {
-      const event = await publishNote(ndk, content);
+      const tags: string[][] = [];
+      if (quoteEventIdRef.current) tags.push(['q', quoteEventIdRef.current]);
+      const event = await publishNote(ndk, content, tags);
+      quoteEventIdRef.current = '';
       onPublished(event);
       if (saveTimer.current) clearTimeout(saveTimer.current);
       await clearDraft();

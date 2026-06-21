@@ -4,7 +4,7 @@ import { nip19 } from 'nostr-tools';
 import {
   IconArrowForwardUp, IconRepeat, IconHeart, IconBolt,
   IconRosetteDiscountCheckFilled, IconBookmark, IconBookmarkFilled,
-  IconDots, IconPin, IconAlertTriangle, IconTrash,
+  IconDots, IconPin, IconAlertTriangle, IconTrash, IconBlockquote,
 } from '@tabler/icons-react';
 import { encodePubkey, truncateNpub } from '../../core/keys';
 import { useProfile, useNip05, useNoteStats, useBookmarks, useMutes, usePins } from '../feed/hooks';
@@ -228,7 +228,7 @@ function StatCount({ n }: { n: number }) {
   return <span className="text-xs tabular-nums">{n}</span>;
 }
 
-export function NoteCard({ event, pinned = false }: { event: NDKEvent; pinned?: boolean }) {
+export function NoteCard({ event, pinned = false, onQuote }: { event: NDKEvent; pinned?: boolean; onQuote?: (url: string, eventId: string) => void }) {
   const ts = event.created_at ?? 0;
   const { ndk } = useNDK();
   const { push } = useNav();
@@ -421,6 +421,16 @@ export function NoteCard({ event, pinned = false }: { event: NDKEvent; pinned?: 
                           Delete note
                         </button>
                       )
+                    )}
+                    {onQuote && (
+                      <button onClick={e => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        onQuote(`\n\nnostr:${nip19.neventEncode({ id: event.id, author: event.pubkey })}`, event.id);
+                      }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2">
+                        <IconBlockquote size={12} />
+                        Quote
+                      </button>
                     )}
                     <button onClick={e => { e.stopPropagation(); void handleCopyId(); }}
                       className="w-full text-left px-3 py-1.5 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">

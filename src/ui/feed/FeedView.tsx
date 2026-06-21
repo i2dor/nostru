@@ -78,12 +78,12 @@ function RepostCard({ event }: { event: NDKEvent }) {
   );
 }
 
-function EventCard({ event }: { event: NDKEvent }) {
+function EventCard({ event, onQuote }: { event: NDKEvent; onQuote?: (url: string, eventId: string) => void }) {
   if (event.kind === 6) return <RepostCard event={event} />;
-  return <NoteCard event={event} />;
+  return <NoteCard event={event} onQuote={onQuote} />;
 }
 
-function FollowingFeed({ pubkey, optimistic }: { pubkey: string; optimistic: NDKEvent[] }) {
+function FollowingFeed({ pubkey, optimistic, onQuote }: { pubkey: string; optimistic: NDKEvent[]; onQuote?: (url: string, eventId: string) => void }) {
   const follows = useFollows(pubkey);
   const blocks = useBlocks();
   const mutes = useMutes();
@@ -104,10 +104,10 @@ function FollowingFeed({ pubkey, optimistic }: { pubkey: string; optimistic: NDK
   if (!eose && events.length === 0 && optimistic.length === 0) return <Spinner />;
   if (all.length === 0) return <EmptyState text="No recent notes from people you follow." />;
 
-  return <div>{all.map(ev => <EventCard key={ev.id} event={ev} />)}</div>;
+  return <div>{all.map(ev => <EventCard key={ev.id} event={ev} onQuote={onQuote} />)}</div>;
 }
 
-function GlobalFeed({ optimistic }: { optimistic: NDKEvent[] }) {
+function GlobalFeed({ optimistic, onQuote }: { optimistic: NDKEvent[]; onQuote?: (url: string, eventId: string) => void }) {
   const { ndk } = useNDK();
   const blocks = useBlocks();
   const mutes = useMutes();
@@ -127,7 +127,7 @@ function GlobalFeed({ optimistic }: { optimistic: NDKEvent[] }) {
   if (!eose && all.length === 0) return <Spinner />;
   if (all.length === 0) return <EmptyState text="No events yet." />;
 
-  return <div>{all.map(ev => <EventCard key={ev.id} event={ev} />)}</div>;
+  return <div>{all.map(ev => <EventCard key={ev.id} event={ev} onQuote={onQuote} />)}</div>;
 }
 
 type Tab = 'following' | 'global';
@@ -135,14 +135,31 @@ type Tab = 'following' | 'global';
 export function FeedView({ pubkey }: { pubkey: string }) {
   const [tab, setTab] = useState<Tab>('following');
   const [optimistic, setOptimistic] = useState<NDKEvent[]>([]);
+  const [quoteText, setQuoteText] = useState('');
+  const [quoteEventId, setQuoteEventId] = useState('');
 
   const handlePublished = useCallback((event: NDKEvent) => {
     setOptimistic(prev => [event, ...prev]);
   }, []);
 
+  const handleQuote = useCallback((url: string, eventId: string) => {
+    setQuoteEventId(eventId);
+    setQuoteText(url);
+  }, []);
+
+  const handleQuoteConsumed = useCallback(() => {
+    setQuoteText('');
+    setQuoteEventId('');
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
-      <Composer onPublished={handlePublished} />
+      <Composer
+        onPublished={handlePublished}
+        quoteText={quoteText}
+        quoteEventId={quoteEventId}
+        onQuoteConsumed={handleQuoteConsumed}
+      />
 
       <div className="flex border-b border-zinc-100 dark:border-zinc-800 shrink-0">
         {(['following', 'global'] as Tab[]).map(t => (
@@ -162,8 +179,8 @@ export function FeedView({ pubkey }: { pubkey: string }) {
 
       <div className="flex-1 overflow-y-auto">
         {tab === 'following'
-          ? <FollowingFeed pubkey={pubkey} optimistic={optimistic} />
-          : <GlobalFeed optimistic={optimistic} />}
+          ? <FollowingFeed pubkey={pubkey} optimistic={optimistic} onQuote={handleQuote} />
+          : <GlobalFeed optimistic={optimistic} onQuote={handleQuote} />}
       </div>
     </div>
   );
