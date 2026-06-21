@@ -7,9 +7,9 @@ export async function publishNip352Address(
   network: 'mainnet' | 'signet' | 'testnet' = 'mainnet',
   paymentPubkeyHex?: string,
 ): Promise<void> {
-  const tags: string[][] = [['d', network], ['sp1', sp1Address]];
+  const tags: string[][] = [['d', network], ['sp', sp1Address]];
   if (paymentPubkeyHex) tags.push(['payment_pubkey', paymentPubkeyHex]);
-  const event = new NDKEvent(ndk, { kind: 10352 as NDKKind, content: '', tags });
+  const event = new NDKEvent(ndk, { kind: 30352 as NDKKind, content: '', tags });
   await event.sign();
   await event.publish();
 }
@@ -20,7 +20,7 @@ export async function fetchNip352Address(
   network: 'mainnet' | 'signet' | 'testnet' = 'mainnet',
 ): Promise<string | null> {
   const events = await ndk.fetchEvents({
-    kinds: [10352 as NDKKind],
+    kinds: [30352 as NDKKind],
     authors: [pubkeyHex],
     '#d': [network],
     limit: 5,
@@ -32,5 +32,5 @@ export async function fetchNip352Address(
   }
 
   if (!latest) return null;
-  return latest.tags.find(t => t[0] === 'sp1')?.[1] ?? null;
+  return latest.tags.find(t => t[0] === 'sp')?.[1] ?? null;
 }

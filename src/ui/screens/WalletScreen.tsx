@@ -550,7 +550,7 @@ function SpSection() {
                   ? <><IconLoader2 size={10} className="animate-spin" />Publishing...</>
                   : <><IconUpload size={10} />Publish to Nostr (NIP-352)</>}
               </button>
-              <InfoTip text="Publishes your SP address as a kind:10352 Nostr event. Senders who query your npub will find this address instead of computing it from your key. Required for deterministic and independent modes." />
+              <InfoTip text="Publishes your SP address as a kind:30352 Nostr event. Senders who query your npub will find this address instead of computing it from your key. Required for deterministic and independent modes." />
               {publishedAt && !publishing && (
                 <span className="text-xs text-green-500 flex items-center gap-1">
                   <IconCheck size={10} />Published

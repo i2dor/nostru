@@ -5,7 +5,7 @@ import { fetchNip352Address, publishNip352Address } from './nip352';
 
 function makeEvent(sp1: string | null, createdAt: number, d = 'mainnet') {
   const tags: string[][] = [['d', d]];
-  if (sp1 !== null) tags.push(['sp1', sp1]);
+  if (sp1 !== null) tags.push(['sp', sp1]);
   return { tags, created_at: createdAt };
 }
 
@@ -37,7 +37,7 @@ vi.mock('@nostr-dev-kit/ndk', async () => {
 // ── publishNip352Address ──────────────────────────────────────────────────────
 
 describe('publishNip352Address', () => {
-  it('signs and publishes a kind:10352 event with correct tags', async () => {
+  it('signs and publishes a kind:30352 event with correct tags', async () => {
     const mockEvent = { sign: vi.fn().mockResolvedValue(undefined), publish: vi.fn().mockResolvedValue(undefined), tags: [] as string[][] };
     const { NDKEvent } = await import('@nostr-dev-kit/ndk');
     vi.mocked(NDKEvent).mockImplementationOnce((_ndk, init) => {
@@ -48,7 +48,7 @@ describe('publishNip352Address', () => {
     expect(mockEvent.sign).toHaveBeenCalled();
     expect(mockEvent.publish).toHaveBeenCalled();
     expect(mockEvent.tags).toContainEqual(['d', 'mainnet']);
-    expect(mockEvent.tags).toContainEqual(['sp1', 'sp1qqtest']);
+    expect(mockEvent.tags).toContainEqual(['sp', 'sp1qqtest']);
   });
 
   it('uses the provided network in the d tag', async () => {
@@ -60,7 +60,7 @@ describe('publishNip352Address', () => {
     });
     await publishNip352Address({} as never, 'sp1qqsignet', 'signet');
     expect(mockEvent.tags).toContainEqual(['d', 'signet']);
-    expect(mockEvent.tags).toContainEqual(['sp1', 'sp1qqsignet']);
+    expect(mockEvent.tags).toContainEqual(['sp', 'sp1qqsignet']);
   });
 
   it('includes payment_pubkey tag when provided', async () => {
@@ -83,7 +83,7 @@ describe('fetchNip352Address', () => {
     expect(await fetchNip352Address(ndk as never, PUBKEY)).toBeNull();
   });
 
-  it('returns the sp1 tag value from a valid event', async () => {
+  it('returns the sp tag value from a valid event', async () => {
     const ndk = makeNdk([makeEvent(SP1, 1000)]);
     expect(await fetchNip352Address(ndk as never, PUBKEY)).toBe(SP1);
   });
@@ -97,7 +97,7 @@ describe('fetchNip352Address', () => {
     expect(await fetchNip352Address(ndk as never, PUBKEY)).toBe('sp1qqnew');
   });
 
-  it('returns null when the event has no sp1 tag', async () => {
+  it('returns null when the event has no sp tag', async () => {
     const ndk = makeNdk([makeEvent(null, 1000)]);
     expect(await fetchNip352Address(ndk as never, PUBKEY)).toBeNull();
   });
@@ -106,7 +106,7 @@ describe('fetchNip352Address', () => {
     const ndk = makeNdk([]);
     await fetchNip352Address(ndk as never, PUBKEY, 'signet');
     expect(ndk.fetchEvents).toHaveBeenCalledWith({
-      kinds: [10352],
+      kinds: [30352],
       authors: [PUBKEY],
       '#d': ['signet'],
       limit: 5,

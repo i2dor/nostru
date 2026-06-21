@@ -298,7 +298,7 @@ function ContributeSection(_: SectionProps) {
           Check open issues for things already on the list.
         </Li>
         <Li>
-          <strong>Know Nostr protocol?</strong> NIP-352 (kind:10352) is a draft. If
+          <strong>Know Nostr protocol?</strong> NIP-352 (kind:30352) is a draft. If
           you see gaps or improvements to the spec,{' '}
           <a
             href="https://github.com/i2dor/nostru/blob/main/docs/nip-352.md"
