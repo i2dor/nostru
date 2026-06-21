@@ -20,8 +20,10 @@ import { addPin, removePin, getPins } from '../../core/store/pins';
 import { useNav } from '../context/NavContext';
 import { ZapModal } from './ZapModal';
 
-const IMAGE_EXT = /\.(jpg|jpeg|png|gif|webp|avif)(\?[^)\s]*)?$/i;
-const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv)(\?[^)\s]*)?$/i;
+const IMAGE_EXT = /\.(jpg|jpeg|png|gif|webp|avif|bmp|svg)(\?[^)\s]*)?$/i;
+const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv|avi)(\?[^)\s]*)?$/i;
+// Nostr media hosts that serve images at extension-less paths
+const IMAGE_HOSTS = /^https?:\/\/(void\.cat\/d\/|nostr\.build\/i\/|image\.nostr\.build\/|cdn\.nostr\.build\/i\/|nostrimg\.com\/[^/]+\/|files\.sovbit\.host\/|cdn\.satellite\.earth\/|i\.imgur\.com\/|i\.ibb\.co\/[^/]+\/)/i;
 
 type NaddrData = { identifier: string; pubkey: string; ndkKind: number; relays?: string[] };
 
@@ -70,7 +72,7 @@ function parseSegments(content: string): Segment[] {
       segments.push({ kind: 'hashtag', tag: token.slice(1) });
     } else if (VIDEO_EXT.test(token)) {
       segments.push({ kind: 'video', url: token });
-    } else if (IMAGE_EXT.test(token)) {
+    } else if (IMAGE_EXT.test(token) || IMAGE_HOSTS.test(token)) {
       segments.push({ kind: 'image', url: token });
     } else {
       segments.push({ kind: 'url', url: token });
@@ -196,7 +198,7 @@ function Lightbox({ url, onClose, onSave, onRepost }: {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col" onClick={e => { e.stopPropagation(); onClose(); }}>
       <div className="flex items-center justify-between px-4 py-3 shrink-0" onClick={e => e.stopPropagation()}>
         <button onClick={onRepost}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
