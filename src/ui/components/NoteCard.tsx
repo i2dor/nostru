@@ -5,7 +5,7 @@ import {
   IconArrowForwardUp, IconRepeat, IconHeart, IconBolt,
   IconRosetteDiscountCheckFilled, IconBookmark, IconBookmarkFilled,
   IconDots, IconPin, IconAlertTriangle, IconTrash, IconBlockquote,
-  IconX, IconDownload,
+  IconX, IconDownload, IconArrowUpRight,
 } from '@tabler/icons-react';
 import { encodePubkey, truncateNpub } from '../../core/keys';
 import { useProfile, useNip05, useNoteStats, useBookmarks, useMutes, usePins } from '../feed/hooks';
@@ -143,13 +143,17 @@ function EmbeddedNote({ eventId }: { eventId: string }) {
   const authorName = ev ? (authorProfile?.displayName ?? authorProfile?.name ?? truncateNpub(encodePubkey(ev.pubkey))) : null;
   if (!ev) return <span className="inline-block text-xs text-zinc-400 italic">loading note...</span>;
   return (
-    <div role="button" tabIndex={0}
-      onClick={e => { e.stopPropagation(); push({ view: 'event-ref', eventId }); }}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); push({ view: 'event-ref', eventId }); } }}
-      className="mt-1 rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors space-y-1">
+    <div className="mt-1 rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm space-y-1">
       <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
         <span className="truncate">{authorName}</span>
         {ev.created_at && <span className="shrink-0 text-zinc-400">{relativeTime(ev.created_at)}</span>}
+        <button
+          className="ml-auto shrink-0 text-zinc-400 hover:text-accent transition-colors"
+          aria-label="Open note"
+          onClick={e => { e.stopPropagation(); push({ view: 'event-ref', eventId }); }}
+        >
+          <IconArrowUpRight size={13} />
+        </button>
       </div>
       <p className="text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-words line-clamp-6 leading-relaxed">{ev.content}</p>
     </div>
@@ -170,14 +174,19 @@ function EmbeddedAddress({ identifier, pubkey, ndkKind }: NaddrData) {
   const authorName = authorProfile?.displayName ?? authorProfile?.name ?? truncateNpub(encodePubkey(pubkey));
   const title = ev?.tags.find(t => t[0] === 'title')?.[1] ?? ev?.tags.find(t => t[0] === 'name')?.[1];
   if (!ev) return <span className="inline-block text-xs text-zinc-400 italic">loading article...</span>;
+  const eventId = ev.id;
   return (
-    <div role="button" tabIndex={0}
-      onClick={e => { e.stopPropagation(); push({ view: 'event-ref', eventId: ev.id }); }}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); push({ view: 'event-ref', eventId: ev.id }); } }}
-      className="mt-1 rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors space-y-1">
+    <div className="mt-1 rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm space-y-1">
       <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
         <span className="truncate">{authorName}</span>
         {ev.created_at && <span className="shrink-0 text-zinc-400">{relativeTime(ev.created_at)}</span>}
+        <button
+          className="ml-auto shrink-0 text-zinc-400 hover:text-accent transition-colors"
+          aria-label="Open article"
+          onClick={e => { e.stopPropagation(); push({ view: 'event-ref', eventId }); }}
+        >
+          <IconArrowUpRight size={13} />
+        </button>
       </div>
       {title && <p className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm leading-snug">{title}</p>}
       <p className="text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap break-words line-clamp-4 leading-relaxed text-xs">{ev.content.slice(0, 300)}</p>
