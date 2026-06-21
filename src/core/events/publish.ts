@@ -12,6 +12,15 @@ export async function publishNote(ndk: NDK, content: string, tags: string[][] = 
   return event;
 }
 
+export async function publishDeletion(ndk: NDK, eventId: string, eventKind: number): Promise<void> {
+  const event = new NDKEvent(ndk);
+  event.kind = 5;
+  event.content = '';
+  event.tags = [['e', eventId], ['k', String(eventKind)]];
+  await event.sign();
+  await event.publish();
+}
+
 export async function publishProfile(
   ndk: NDK,
   metadata: Record<string, string>,

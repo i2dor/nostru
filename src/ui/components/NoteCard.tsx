@@ -4,13 +4,14 @@ import { nip19 } from 'nostr-tools';
 import {
   IconArrowForwardUp, IconRepeat, IconHeart, IconBolt,
   IconRosetteDiscountCheckFilled, IconBookmark, IconBookmarkFilled,
-  IconDots, IconPin, IconAlertTriangle,
+  IconDots, IconPin, IconAlertTriangle, IconTrash,
 } from '@tabler/icons-react';
 import { encodePubkey, truncateNpub } from '../../core/keys';
 import { useProfile, useNip05, useNoteStats, useBookmarks, useMutes, usePins } from '../feed/hooks';
 import { useNDK } from '../../core/ndk';
 import { useAccount } from '../context/AccountContext';
 import { publishLike, publishRepost } from '../../core/events/reactions';
+import { publishDeletion } from '../../core/events/publish';
 import { publishBookmarkList, publishMuteList, publishPinList } from '../../core/events/lists';
 import { addBookmark, removeBookmark, getBookmarks } from '../../core/store/bookmarks';
 import { addMute, removeMute, getMutes } from '../../core/store/mutes';
@@ -251,6 +252,8 @@ export function NoteCard({ event, pinned = false }: { event: NDKEvent; pinned?: 
   const [reposted, setReposted] = useState(false);
   const [zapOpen, setZapOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [cwRevealed, setCwRevealed] = useState(false);
 
   const contentWarning = event.tags.find(t => t[0] === 'content-warning');
@@ -312,6 +315,16 @@ export function NoteCard({ event, pinned = false }: { event: NDKEvent; pinned?: 
     setMenuOpen(false);
     await navigator.clipboard.writeText(nip19.noteEncode(event.id));
   }, [event.id]);
+
+  const handleDelete = useCallback(async () => {
+    if (!ndk) return;
+    setMenuOpen(false);
+    setConfirmDelete(false);
+    setDeleted(true);
+    await publishDeletion(ndk, event.id, event.kind ?? 1).catch(() => setDeleted(false));
+  }, [ndk, event.id, event.kind]);
+
+  if (deleted) return null;
 
   const totalLikes = stats.likes + (liked ? 1 : 0);
   const totalReposts = stats.reposts + (reposted ? 1 : 0);
@@ -377,7 +390,7 @@ export function NoteCard({ event, pinned = false }: { event: NDKEvent; pinned?: 
               </button>
               {menuOpen && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={e => { e.stopPropagation(); setMenuOpen(false); }} />
+                  <div className="fixed inset-0 z-40" onClick={e => { e.stopPropagation(); setMenuOpen(false); setConfirmDelete(false); }} />
                   <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 z-50">
                     {!isSelfNote && (
                       <button onClick={e => { e.stopPropagation(); void handleMuteToggle(); }}
@@ -391,6 +404,23 @@ export function NoteCard({ event, pinned = false }: { event: NDKEvent; pinned?: 
                         <IconPin size={12} />
                         {isPinned ? 'Unpin from profile' : 'Pin to profile'}
                       </button>
+                    )}
+                    {isSelfNote && (
+                      confirmDelete ? (
+                        <div className="px-3 py-1.5 text-xs flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                          <span className="flex-1 text-red-500">Delete?</span>
+                          <button onClick={e => { e.stopPropagation(); void handleDelete(); }}
+                            className="text-red-500 hover:text-red-600 font-medium">Yes</button>
+                          <button onClick={e => { e.stopPropagation(); setConfirmDelete(false); }}
+                            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">No</button>
+                        </div>
+                      ) : (
+                        <button onClick={e => { e.stopPropagation(); setConfirmDelete(true); }}
+                          className="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2">
+                          <IconTrash size={12} />
+                          Delete note
+                        </button>
+                      )
                     )}
                     <button onClick={e => { e.stopPropagation(); void handleCopyId(); }}
                       className="w-full text-left px-3 py-1.5 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
