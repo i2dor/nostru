@@ -201,66 +201,78 @@ function MainContent({ narrow, pubkey }: { narrow: boolean; pubkey: string }) {
         }
       </header>
 
-      {mainView === 'permissions' ? (
-        <PermissionsScreen />
-      ) : mainView === 'settings' ? (
-        <SettingsScreen
-          onOpenWallet={() => setMainView('wallet')}
-          onOpenPermissions={() => setMainView('permissions')}
-          onOpenHelp={() => setMainView('help')}
-          narrow={narrow}
-          wideLayout={wideLayout}
-          onWideLayoutChange={handleWideLayoutChange}
-        />
-      ) : mainView === 'help' ? (
-        <HelpScreen />
-      ) : mainView === 'wallet' ? (
-        <WalletScreen />
-      ) : mainView === 'addAccount' ? (
-        <OnboardingScreen />
-      ) : current.view === 'thread' ? (
-        <ThreadView event={current.event} />
-      ) : current.view === 'profile' ? (
-        <ProfileView pubkey={current.pubkey} />
-      ) : current.view === 'follow-list' ? (
-        <FollowListView pubkeys={current.pubkeys} title={current.title} />
-      ) : current.view === 'conversation' ? (
-        <ConversationView peerPubkey={current.peerPubkey} />
-      ) : current.view === 'search' ? (
-        <SearchScreen initialQuery={current.query} />
-      ) : current.view === 'event-ref' ? (
-        <EventRefView eventId={current.eventId} />
-      ) : current.view === 'bookmarks' ? (
-        <BookmarksScreen />
-      ) : (
-        <>
-          <nav className={`flex border-b border-zinc-100 dark:border-zinc-800 shrink-0 ${narrow ? 'justify-around' : 'gap-1 px-2'}`}>
-            {NAV_ITEMS.map(({ icon: Icon, label }, i) => (
-              <button
-                key={label}
-                onClick={() => setActiveTab(i)}
-                title={label}
-                className={`flex items-center gap-1.5 px-3 py-2.5 text-xs transition-colors border-b-2 ${
-                  activeTab === i
-                    ? 'border-accent text-accent'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
-                } ${narrow ? 'flex-col text-[10px]' : ''}`}
-              >
-                <Icon size={18} />
-                {!narrow && <span>{label}</span>}
-              </button>
-            ))}
-          </nav>
-          <main className="flex-1 overflow-hidden">
-            {activeTab === 0 && <FeedView pubkey={pubkey} />}
-            {activeTab === 1 && <NotificationsScreen />}
-            {activeTab === 2 && <MessagesScreen />}
-            {activeTab === 3 && <SearchScreen />}
-            {activeTab === 4 && <BookmarksScreen />}
-            {activeTab === 5 && <WalletScreen />}
-          </main>
-        </>
+      {/* Overlay screens (settings / wallet / etc.) - unmount/remount is fine */}
+      {isOverlay && (
+        <div className="flex-1 overflow-hidden">
+          {mainView === 'permissions' ? (
+            <PermissionsScreen />
+          ) : mainView === 'settings' ? (
+            <SettingsScreen
+              onOpenWallet={() => setMainView('wallet')}
+              onOpenPermissions={() => setMainView('permissions')}
+              onOpenHelp={() => setMainView('help')}
+              narrow={narrow}
+              wideLayout={wideLayout}
+              onWideLayoutChange={handleWideLayoutChange}
+            />
+          ) : mainView === 'help' ? (
+            <HelpScreen />
+          ) : mainView === 'wallet' ? (
+            <WalletScreen />
+          ) : mainView === 'addAccount' ? (
+            <OnboardingScreen />
+          ) : null}
+        </div>
       )}
+
+      {/* Nav-stack views (thread / profile / etc.) */}
+      {!isOverlay && current.view !== 'feed' && (
+        <div className="flex-1 overflow-hidden">
+          {current.view === 'thread' ? (
+            <ThreadView event={current.event} />
+          ) : current.view === 'profile' ? (
+            <ProfileView pubkey={current.pubkey} />
+          ) : current.view === 'follow-list' ? (
+            <FollowListView pubkeys={current.pubkeys} title={current.title} />
+          ) : current.view === 'conversation' ? (
+            <ConversationView peerPubkey={current.peerPubkey} />
+          ) : current.view === 'search' ? (
+            <SearchScreen initialQuery={current.query} />
+          ) : current.view === 'event-ref' ? (
+            <EventRefView eventId={current.eventId} />
+          ) : current.view === 'bookmarks' ? (
+            <BookmarksScreen />
+          ) : null}
+        </div>
+      )}
+
+      {/* Always-mounted feed - hidden while any overlay or nav-stack view is shown.
+          Keeping it mounted preserves tab selection and scroll position. */}
+      <nav className={`flex border-b border-zinc-100 dark:border-zinc-800 shrink-0 ${narrow ? 'justify-around' : 'gap-1 px-2'} ${isOverlay || current.view !== 'feed' ? 'hidden' : ''}`}>
+        {NAV_ITEMS.map(({ icon: Icon, label }, i) => (
+          <button
+            key={label}
+            onClick={() => setActiveTab(i)}
+            title={label}
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-xs transition-colors border-b-2 ${
+              activeTab === i
+                ? 'border-accent text-accent'
+                : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+            } ${narrow ? 'flex-col text-[10px]' : ''}`}
+          >
+            <Icon size={18} />
+            {!narrow && <span>{label}</span>}
+          </button>
+        ))}
+      </nav>
+      <main className={`flex-1 overflow-hidden ${isOverlay || current.view !== 'feed' ? 'hidden' : ''}`}>
+        <div className={`h-full ${activeTab !== 0 ? 'hidden' : ''}`}><FeedView pubkey={pubkey} /></div>
+        <div className={`h-full ${activeTab !== 1 ? 'hidden' : ''}`}><NotificationsScreen /></div>
+        <div className={`h-full ${activeTab !== 2 ? 'hidden' : ''}`}><MessagesScreen /></div>
+        <div className={`h-full ${activeTab !== 3 ? 'hidden' : ''}`}><SearchScreen /></div>
+        <div className={`h-full ${activeTab !== 4 ? 'hidden' : ''}`}><BookmarksScreen /></div>
+        <div className={`h-full ${activeTab !== 5 ? 'hidden' : ''}`}><WalletScreen /></div>
+      </main>
     </div>
   );
 }

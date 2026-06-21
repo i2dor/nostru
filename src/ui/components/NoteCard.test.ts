@@ -7,6 +7,7 @@ vi.mock('../../core/keys', () => ({ encodePubkey: vi.fn(() => 'aa'), truncateNpu
 vi.mock('../feed/hooks', () => ({ useProfile: vi.fn(() => null) }));
 vi.mock('../../core/ndk', () => ({ useNDK: vi.fn(() => ({ ndk: null })) }));
 vi.mock('../../core/events/reactions', () => ({ publishLike: vi.fn(), publishRepost: vi.fn() }));
+vi.mock('../../core/events/publish', () => ({ publishDeletion: vi.fn() }));
 vi.mock('../context/NavContext', () => ({ useNav: vi.fn(() => ({ push: vi.fn() })) }));
 vi.mock('./ZapModal', () => ({ ZapModal: vi.fn(() => null) }));
 

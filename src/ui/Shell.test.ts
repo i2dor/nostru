@@ -24,15 +24,21 @@ vi.mock('./context/WalletContext', () => ({
 vi.mock('./screens/OnboardingScreen', () => ({ OnboardingScreen: vi.fn(() => null) }));
 vi.mock('./screens/UnlockScreen', () => ({ UnlockScreen: vi.fn(() => null) }));
 vi.mock('./screens/ThreadView', () => ({ ThreadView: vi.fn(() => null) }));
-vi.mock('./screens/ProfileView', () => ({ ProfileView: vi.fn(() => null) }));
+vi.mock('./screens/ProfileView', () => ({ ProfileView: vi.fn(() => null), FollowListView: vi.fn(() => null) }));
 vi.mock('./screens/PermissionsScreen', () => ({ PermissionsScreen: vi.fn(() => null) }));
 vi.mock('./screens/WalletScreen', () => ({ WalletScreen: vi.fn(() => null) }));
 vi.mock('./screens/MessagesScreen', () => ({ MessagesScreen: vi.fn(() => null) }));
 vi.mock('./screens/ConversationView', () => ({ ConversationView: vi.fn(() => null) }));
 vi.mock('./screens/NotificationsScreen', () => ({ NotificationsScreen: vi.fn(() => null) }));
 vi.mock('./screens/SearchScreen', () => ({ SearchScreen: vi.fn(() => null), buildFilter: vi.fn() }));
+vi.mock('./screens/BookmarksScreen', () => ({ BookmarksScreen: vi.fn(() => null) }));
+vi.mock('./screens/SettingsScreen', () => ({ SettingsScreen: vi.fn(() => null) }));
+vi.mock('./screens/HelpScreen', () => ({ HelpScreen: vi.fn(() => null) }));
+vi.mock('./screens/EventRefView', () => ({ EventRefView: vi.fn(() => null) }));
 vi.mock('./feed/FeedView', () => ({ FeedView: vi.fn(() => null) }));
 vi.mock('../core/keys', () => ({ truncateNpub: vi.fn(s => s), encodePubkey: vi.fn(s => s) }));
+vi.mock('../core/store/theme', () => ({ getTheme: vi.fn(), applyTheme: vi.fn() }));
+vi.mock('../core/store/settings', () => ({ getWideLayout: vi.fn(), setWideLayout: vi.fn() }));
 
 describe('Shell module API', () => {
   it('exports Shell as a function', async () => {

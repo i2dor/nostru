@@ -26,8 +26,13 @@ function NotificationRow({ event }: { event: NDKEvent }) {
   const kind = event.kind ?? 1;
 
   const handleClick = () => {
-    if (kind === 1) push({ view: 'thread', event });
-    else push({ view: 'profile', pubkey: event.pubkey });
+    if (kind === 1) {
+      push({ view: 'thread', event });
+    } else {
+      const targetId = event.tags.find(t => t[0] === 'e')?.[1];
+      if (targetId) push({ view: 'event-ref', eventId: targetId });
+      else push({ view: 'profile', pubkey: event.pubkey });
+    }
   };
 
   return (
