@@ -5,6 +5,7 @@ import {
   IconArrowForwardUp, IconRepeat, IconHeart, IconBolt,
   IconRosetteDiscountCheckFilled, IconBookmark, IconBookmarkFilled,
   IconDots, IconPin, IconAlertTriangle, IconTrash, IconBlockquote,
+  IconX, IconDownload,
 } from '@tabler/icons-react';
 import { encodePubkey, truncateNpub } from '../../core/keys';
 import { useProfile, useNip05, useNoteStats, useBookmarks, useMutes, usePins } from '../feed/hooks';
@@ -182,7 +183,44 @@ function EmbeddedAddress({ identifier, pubkey, ndkKind }: NaddrData) {
   );
 }
 
-function ContentRenderer({ content }: { content: string }) {
+function Lightbox({ url, onClose, onSave, onRepost }: {
+  url: string;
+  onClose: () => void;
+  onSave: () => void;
+  onRepost: () => void;
+}) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col" onClick={onClose}>
+      <div className="flex items-center justify-between px-4 py-3 shrink-0" onClick={e => e.stopPropagation()}>
+        <button onClick={onRepost}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+          <IconRepeat size={13} /> Repost note
+        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={onSave}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+            <IconDownload size={13} /> Save
+          </button>
+          <button onClick={onClose}
+            className="flex items-center justify-center w-7 h-7 text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+            <IconX size={14} />
+          </button>
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden" onClick={e => e.stopPropagation()}>
+        <img src={url} alt="" className="max-w-full max-h-full object-contain select-none" draggable={false} />
+      </div>
+    </div>
+  );
+}
+
+function ContentRenderer({ content, onImageClick }: { content: string; onImageClick?: (url: string) => void }) {
   const { push } = useNav();
   const segments = parseSegments(content);
   const inlineSegs = segments.filter(s => s.kind !== 'image' && s.kind !== 'video' && s.kind !== 'nostr-event' && s.kind !== 'nostr-address');
@@ -209,10 +247,17 @@ function ContentRenderer({ content }: { content: string }) {
         </p>
       )}
       {imageSegs.map((seg, i) => (
-        <a key={i} href={seg.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
-          <img src={seg.url} alt="" loading="lazy" className="rounded-lg max-h-[32rem] max-w-full object-contain cursor-zoom-in"
-            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-        </a>
+        onImageClick ? (
+          <button key={i} onClick={e => { e.stopPropagation(); onImageClick(seg.url); }} className="block w-full text-left">
+            <img src={seg.url} alt="" loading="lazy" className="rounded-lg max-h-[32rem] max-w-full object-contain cursor-zoom-in"
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+          </button>
+        ) : (
+          <a key={i} href={seg.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+            <img src={seg.url} alt="" loading="lazy" className="rounded-lg max-h-[32rem] max-w-full object-contain cursor-zoom-in"
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+          </a>
+        )
       ))}
       {videoSegs.map((seg, i) => (
         <video key={i} src={seg.url} controls preload="metadata" className="rounded-lg max-h-[24rem] max-w-full" onClick={e => e.stopPropagation()} />
@@ -255,6 +300,7 @@ export function NoteCard({ event, pinned = false, onQuote }: { event: NDKEvent; 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [cwRevealed, setCwRevealed] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState('');
 
   const contentWarning = event.tags.find(t => t[0] === 'content-warning');
   const name = profile?.displayName ?? profile?.name;
@@ -324,6 +370,27 @@ export function NoteCard({ event, pinned = false, onQuote }: { event: NDKEvent; 
     await publishDeletion(ndk, event.id, event.kind ?? 1).catch(() => setDeleted(false));
   }, [ndk, event.id, event.kind]);
 
+  const handleLightboxRepost = useCallback(async () => {
+    if (!ndk || reposted) return;
+    setReposted(true);
+    try { await publishRepost(ndk, event); } catch { setReposted(false); }
+  }, [ndk, reposted, event]);
+
+  const handleLightboxSave = useCallback(async () => {
+    try {
+      const response = await fetch(lightboxUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = lightboxUrl.split('/').pop()?.split('?')[0] ?? 'image';
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(lightboxUrl, '_blank');
+    }
+  }, [lightboxUrl]);
+
   if (deleted) return null;
 
   const totalLikes = stats.likes + (liked ? 1 : 0);
@@ -359,7 +426,7 @@ export function NoteCard({ event, pinned = false, onQuote }: { event: NDKEvent; 
                 className="text-xs text-accent hover:underline">Show anyway</button>
             </div>
           ) : (
-            <ContentRenderer content={event.content} />
+            <ContentRenderer content={event.content} onImageClick={url => { setLightboxUrl(url); }} />
           )}
 
           <div className="flex items-center gap-4 pt-1">
@@ -453,6 +520,14 @@ export function NoteCard({ event, pinned = false, onQuote }: { event: NDKEvent; 
         </div>
       </div>
       {zapOpen && <ZapModal event={event} onClose={() => setZapOpen(false)} />}
+      {lightboxUrl && (
+        <Lightbox
+          url={lightboxUrl}
+          onClose={() => setLightboxUrl('')}
+          onSave={() => void handleLightboxSave()}
+          onRepost={() => void handleLightboxRepost()}
+        />
+      )}
     </article>
   );
 }
