@@ -299,7 +299,13 @@ function ContributeSection(_: SectionProps) {
         </Li>
         <Li>
           <strong>Know Nostr protocol?</strong> NIP-352 (kind:10352) is a draft. If
-          you see gaps or improvements to the spec, open a discussion.
+          you see gaps or improvements to the spec,{' '}
+          <a
+            href="https://github.com/i2dor/nostru/blob/main/docs/nip-352.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent underline hover:no-underline"
+          >open a discussion</a>.
         </Li>
         <Li>
           <strong>Speak another language?</strong> The README has translations - adding

@@ -31,44 +31,41 @@ export function ThreadView({ event }: { event: NDKEvent }) {
   const [parentChain, setParentChain] = useState<NDKEvent[]>([]);
   const [chainLoading, setChainLoading] = useState(false);
 
-  // Extract primitive IDs to avoid object-reference instability in useEffect deps
-  const { rootId, parentId } = useMemo(() => {
+  // Primitive ID of the direct parent - stable dep for useEffect
+  const directParentId = useMemo(() => {
     const refs = parseNIP10(event.tags);
-    return {
-      rootId: refs.root?.id ?? null,
-      parentId: refs.reply?.id ?? null,
-    };
+    return refs.reply?.id ?? refs.root?.id ?? null;
   }, [event.tags]);
 
-  const hasAncestors = !!(rootId || parentId);
+  const hasAncestors = !!directParentId;
 
   useEffect(() => {
-    if (!ndk || !hasAncestors) return;
+    if (!ndk || !directParentId) return;
     let cancelled = false;
     setChainLoading(true);
 
     async function fetchChain() {
       const chain: NDKEvent[] = [];
+      const seen = new Set<string>([event.id]);
+      let nextId: string | null = directParentId;
 
-      if (rootId && rootId !== event.id) {
-        const rootEv = await ndk!.fetchEvent(rootId).catch(() => null);
-        if (!cancelled && rootEv) chain.push(rootEv);
+      for (let depth = 0; depth < 20 && nextId && !seen.has(nextId); depth++) {
+        seen.add(nextId);
+        const ev = await ndk!.fetchEvent(nextId).catch(() => null);
+        if (cancelled) return;
+        if (!ev) break;
+        chain.unshift(ev);
+        const refs = parseNIP10(ev.tags);
+        nextId = refs.reply?.id ?? refs.root?.id ?? null;
       }
 
-      if (parentId && parentId !== rootId && parentId !== event.id) {
-        const parentEv = await ndk!.fetchEvent(parentId).catch(() => null);
-        if (!cancelled && parentEv) chain.push(parentEv);
-      }
-
-      if (!cancelled) {
-        setParentChain(chain);
-        setChainLoading(false);
-      }
+      setParentChain(chain);
+      setChainLoading(false);
     }
 
     void fetchChain();
     return () => { cancelled = true; };
-  }, [ndk, event.id, rootId, parentId, hasAncestors]);
+  }, [ndk, event.id, directParentId]);
 
   const { events: replies, eose } = useFeed(
     { kinds: [1], '#e': [event.id], limit: 100 },
