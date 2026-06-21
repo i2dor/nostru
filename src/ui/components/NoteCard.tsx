@@ -222,11 +222,39 @@ function Lightbox({ url, onClose, onSave, onRepost }: {
   );
 }
 
+// Speculatively tries to load any URL as an image.
+// Shows when loaded (with lightbox); stays invisible on error so text link remains.
+function TryImage({ url, onImageClick }: { url: string; onImageClick?: (u: string) => void }) {
+  const [loaded, setLoaded] = useState(false);
+  if (onImageClick) {
+    return (
+      <button
+        onClick={e => { e.stopPropagation(); if (loaded) onImageClick(url); }}
+        className={`block w-full text-left ${loaded ? '' : 'hidden'}`}
+      >
+        <img src={url} alt="" loading="lazy"
+          className="rounded-lg max-h-[32rem] max-w-full object-contain cursor-zoom-in"
+          onLoad={() => setLoaded(true)}
+          onError={e => { (e.currentTarget as HTMLImageElement).parentElement!.style.display = 'none'; }}
+        />
+      </button>
+    );
+  }
+  return (
+    <img src={url} alt="" loading="lazy"
+      className={`rounded-lg max-h-[32rem] max-w-full object-contain ${loaded ? 'block' : 'hidden'}`}
+      onLoad={() => setLoaded(true)}
+      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+    />
+  );
+}
+
 function ContentRenderer({ content, onImageClick }: { content: string; onImageClick?: (url: string) => void }) {
   const { push } = useNav();
   const segments = parseSegments(content);
   const inlineSegs = segments.filter(s => s.kind !== 'image' && s.kind !== 'video' && s.kind !== 'nostr-event' && s.kind !== 'nostr-address');
   const imageSegs = segments.filter(s => s.kind === 'image') as Extract<Segment, { kind: 'image' }>[];
+  const urlSegs = segments.filter(s => s.kind === 'url') as Extract<Segment, { kind: 'url' }>[];
   const videoSegs = segments.filter(s => s.kind === 'video') as Extract<Segment, { kind: 'video' }>[];
   const eventSegs = segments.filter(s => s.kind === 'nostr-event') as Extract<Segment, { kind: 'nostr-event' }>[];
   const addressSegs = segments.filter(s => s.kind === 'nostr-address') as (NaddrData & { kind: 'nostr-address' })[];
@@ -260,6 +288,10 @@ function ContentRenderer({ content, onImageClick }: { content: string; onImageCl
               onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
           </a>
         )
+      ))}
+      {/* Try every unrecognised URL as a hidden image - shows only when it loads successfully */}
+      {urlSegs.map((seg, i) => (
+        <TryImage key={`try-${i}`} url={seg.url} onImageClick={onImageClick} />
       ))}
       {videoSegs.map((seg, i) => (
         <video key={i} src={seg.url} controls preload="metadata" className="rounded-lg max-h-[24rem] max-w-full" onClick={e => e.stopPropagation()} />

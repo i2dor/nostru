@@ -31,9 +31,16 @@ export function ThreadView({ event }: { event: NDKEvent }) {
   const [parentChain, setParentChain] = useState<NDKEvent[]>([]);
   const [chainLoading, setChainLoading] = useState(false);
 
-  const { root, reply: parent } = useMemo(() => parseNIP10(event.tags), [event.tags]);
+  // Extract primitive IDs to avoid object-reference instability in useEffect deps
+  const { rootId, parentId } = useMemo(() => {
+    const refs = parseNIP10(event.tags);
+    return {
+      rootId: refs.root?.id ?? null,
+      parentId: refs.reply?.id ?? null,
+    };
+  }, [event.tags]);
 
-  const hasAncestors = !!(root?.id || parent?.id);
+  const hasAncestors = !!(rootId || parentId);
 
   useEffect(() => {
     if (!ndk || !hasAncestors) return;
@@ -43,13 +50,13 @@ export function ThreadView({ event }: { event: NDKEvent }) {
     async function fetchChain() {
       const chain: NDKEvent[] = [];
 
-      if (root?.id && root.id !== event.id) {
-        const rootEv = await ndk!.fetchEvent(root.id).catch(() => null);
+      if (rootId && rootId !== event.id) {
+        const rootEv = await ndk!.fetchEvent(rootId).catch(() => null);
         if (!cancelled && rootEv) chain.push(rootEv);
       }
 
-      if (parent?.id && parent.id !== root?.id && parent.id !== event.id) {
-        const parentEv = await ndk!.fetchEvent(parent.id).catch(() => null);
+      if (parentId && parentId !== rootId && parentId !== event.id) {
+        const parentEv = await ndk!.fetchEvent(parentId).catch(() => null);
         if (!cancelled && parentEv) chain.push(parentEv);
       }
 
@@ -61,7 +68,7 @@ export function ThreadView({ event }: { event: NDKEvent }) {
 
     void fetchChain();
     return () => { cancelled = true; };
-  }, [ndk, event.id, root, parent, hasAncestors]);
+  }, [ndk, event.id, rootId, parentId, hasAncestors]);
 
   const { events: replies, eose } = useFeed(
     { kinds: [1], '#e': [event.id], limit: 100 },
