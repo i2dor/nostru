@@ -1,11 +1,37 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { IconSend } from '@tabler/icons-react';
-import type { NDKEvent } from '@nostr-dev-kit/ndk';
+import NDK, { type NDKEvent } from '@nostr-dev-kit/ndk';
 import { useNDK } from '../../core/ndk';
 import { publishNote } from '../../core/events/publish';
-import { buildReplyTags, parseNIP10 } from '../../core/events/nip10';
+import { buildReplyTags } from '../../core/events/nip10';
 import { NoteCard } from '../components/NoteCard';
 import { useFeed } from '../feed/hooks';
+
+const FETCH_TIMEOUT_MS = 5000;
+
+function withTimeout(promise: Promise<NDKEvent | null>, ms: number): Promise<NDKEvent | null> {
+  const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), ms));
+  return Promise.race([promise, timeout]);
+}
+
+async function fetchAncestors(ndk: NDK, event: NDKEvent): Promise<NDKEvent[]> {
+  const ids = [
+    ...new Set(
+      event.tags
+        .filter(t => t[0] === 'e' && t[1] && t[1] !== event.id)
+        .map(t => t[1])
+    ),
+  ];
+  if (ids.length === 0) return [];
+
+  const results = await Promise.all(
+    ids.map(id => withTimeout(ndk.fetchEvent(id).catch(() => null), FETCH_TIMEOUT_MS))
+  );
+
+  return results
+    .filter((ev): ev is NDKEvent => ev !== null)
+    .sort((a, b) => (a.created_at ?? 0) - (b.created_at ?? 0));
+}
 
 function Spinner() {
   return (
@@ -31,41 +57,25 @@ export function ThreadView({ event }: { event: NDKEvent }) {
   const [parentChain, setParentChain] = useState<NDKEvent[]>([]);
   const [chainLoading, setChainLoading] = useState(false);
 
-  // Primitive ID of the direct parent - stable dep for useEffect
-  const directParentId = useMemo(() => {
-    const refs = parseNIP10(event.tags);
-    return refs.reply?.id ?? refs.root?.id ?? null;
-  }, [event.tags]);
-
-  const hasAncestors = !!directParentId;
+  const hasAncestors = useMemo(
+    () => event.tags.some(t => t[0] === 'e' && t[1] && t[1] !== event.id),
+    [event.id, event.tags],
+  );
 
   useEffect(() => {
-    if (!ndk || !directParentId) return;
+    if (!ndk || !hasAncestors) return;
     let cancelled = false;
     setChainLoading(true);
+    setParentChain([]);
 
-    async function fetchChain() {
-      const chain: NDKEvent[] = [];
-      const seen = new Set<string>([event.id]);
-      let nextId: string | null = directParentId;
-
-      for (let depth = 0; depth < 20 && nextId && !seen.has(nextId); depth++) {
-        seen.add(nextId);
-        const ev = await ndk!.fetchEvent(nextId).catch(() => null);
-        if (cancelled) return;
-        if (!ev) break;
-        chain.unshift(ev);
-        const refs = parseNIP10(ev.tags);
-        nextId = refs.reply?.id ?? refs.root?.id ?? null;
-      }
-
+    fetchAncestors(ndk, event).then(chain => {
+      if (cancelled) return;
       setParentChain(chain);
       setChainLoading(false);
-    }
+    });
 
-    void fetchChain();
     return () => { cancelled = true; };
-  }, [ndk, event.id, directParentId]);
+  }, [ndk, event.id, hasAncestors]);
 
   const { events: replies, eose } = useFeed(
     { kinds: [1], '#e': [event.id], limit: 100 },
