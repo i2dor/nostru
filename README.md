@@ -8,6 +8,28 @@ A browser extension (Chrome MV3) that connects your Nostr identity to the Bitcoi
 
 ---
 
+## Install
+
+**Option 1 — load unpacked (no Chrome Web Store account required)**
+
+1. Download `nostru-<version>-chrome.zip` from [Releases](https://github.com/i2dor/nostru/releases/latest)
+2. Unzip it
+3. Open `chrome://extensions` → enable **Developer mode** → click **Load unpacked**
+4. Select the unzipped folder
+
+**Option 2 — build from source**
+
+```bash
+git clone https://github.com/i2dor/nostru
+cd nostru
+npm install
+npm run build   # output → dist/chrome-mv3/
+```
+
+Load `dist/chrome-mv3/` as an unpacked extension.
+
+---
+
 ## What it does
 
 | Feature | Description |
@@ -159,7 +181,7 @@ The idea of mapping Nostr identities to Bitcoin Silent Payment addresses was art
 
 ## Proposed standards
 
-- [NIP-352](docs/nip-352.md) — *Bitcoin Silent Payment Address* — a replaceable Nostr event (kind:10352) that publishes a BIP-352 Silent Payment address discoverable via social identity, without cryptographically binding the payment address to the social keypair. Enables rotation and separation of payment identity from Nostr identity.
+- [NIP-352](docs/nip-352.md) — *Bitcoin Silent Payment Address* — an addressable Nostr event (kind:30352) that publishes a BIP-352 Silent Payment address discoverable via social identity, without cryptographically binding the payment address to the social keypair. Enables rotation and separation of payment identity from Nostr identity. Complements NSP (PR [#2355](https://github.com/nostr-protocol/nips/pull/2355)), which derives an SP address from any npub deterministically — NIP-352 is the receiver-controlled announcement layer, NSP is the zero-action fallback.
 
 ---
 
@@ -389,11 +411,10 @@ Default relays are listed in `src/core/ndk/config.ts`. You can add or remove rel
 ```bash
 npm install
 npm run build        # production build -> dist/chrome-mv3/
+npm run zip          # production build + zip -> dist/nostru-<version>-chrome.zip
 npm run dev          # HMR dev mode
 npm test             # vitest unit tests
 ```
-
-Load `dist/chrome-mv3/` as an unpacked extension in Chrome.
 
 ---
 
