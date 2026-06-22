@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="128" height="128" rx="22" fill="url(#bg)"/>
+
+  <!-- N letterform: left bar, diagonal, right bar -->
+  <rect x="17" y="21" width="21" height="86" rx="3" fill="white"/>
+  <polygon points="38,21 59,21 111,107 90,107" fill="white"/>
+  <rect x="90" y="21" width="21" height="86" rx="3" fill="white"/>
+
+  <!-- Bitcoin orange badge, bottom-right -->
+  <circle cx="97" cy="97" r="21" fill="#f97316"/>
+  <!-- Lightning bolt inside badge -->
+  <polygon points="100,83 93,97 99,97 92,113 106,97 100,97" fill="white"/>
+</svg>
